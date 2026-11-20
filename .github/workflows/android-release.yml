@@ -143,12 +143,14 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk "dist/清弈-v${VERSION_NAME}.apk"
+          # Release 资产名用 ASCII: GitHub 会剔除资产名里的非 ASCII 字符,
+          # 用「清弈-v1.2.9.apk」会被改写成「-v1.2.9.apk」, 所以统一用 QingYi-v<版本>.apk
+          cp app/build/outputs/apk/release/app-release.apk "dist/QingYi-v${VERSION_NAME}.apk"
           ls -lh dist
           {
             echo "### 清弈 v${VERSION_NAME} (${VERSION_CODE})"
             echo ""
-            echo "- 安装包: \`清弈-v${VERSION_NAME}.apk\`"
+            echo "- 安装包: \`QingYi-v${VERSION_NAME}.apk\`"
             echo "- 签名 SHA-256: \`$CERT_SHA256\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -169,7 +171,7 @@ jobs:
           body: |
             清弈 ${{ github.ref_name }}（Android + iOS 双端）
 
-            - Android：`清弈-v1.2.9.apk`，统一发布证书签名，可直接覆盖安装升级（versionCode 23）。
+            - Android：`QingYi-v1.2.9.apk`，统一发布证书签名，可直接覆盖安装升级（versionCode 23）。
             - iOS：`QingYi-unsigned.ipa`，未签名，需自签（AltStore / Sideloadly / 开发者证书重签）后侧载安装。
 
             源码：安卓见 `android/`，iOS 见 `ios/`。

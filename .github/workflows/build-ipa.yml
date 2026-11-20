@@ -196,7 +196,7 @@ jobs:
           body: |
             清弈 ${{ github.ref_name }}（Android + iOS 双端）
 
-            - Android：`清弈-v1.2.9.apk`，统一发布证书签名，可直接覆盖安装升级（versionCode 23）。
+            - Android：`QingYi-v1.2.9.apk`，统一发布证书签名，可直接覆盖安装升级（versionCode 23）。
             - iOS：`QingYi-unsigned.ipa`，未签名，需自签（AltStore / Sideloadly / 开发者证书重签）后侧载安装。
 
             源码：安卓见 `android/`，iOS 见 `ios/`。
