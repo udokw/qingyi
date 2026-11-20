@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 联机大厅: 小标签 -->
+    <style name="LanLabel">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">#6B665C</item>
+        <item name="android:letterSpacing">0.12</item>
+    </style>
+
+    <!-- 联机大厅: 输入框(底色与描边在代码里按主题设置) -->
+    <style name="LanInput">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:layout_marginTop">6dp</item>
+        <item name="android:background">@null</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingLeft">14dp</item>
+        <item name="android:paddingRight">14dp</item>
+        <item name="android:textColor">#1A1A1A</item>
+        <item name="android:textColorHint">#B0A79B</item>
+        <item name="android:textSize">17sp</item>
+        <item name="android:singleLine">true</item>
+    </style>
+
+    <!-- 联机大厅: 可选项 -->
+    <style name="LanChip">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">44dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_marginRight">8dp</item>
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+    <!-- 联机大厅: 棋种切换用的轻量小分段（入口已按棋类进入，不再占整行） -->
+    <style name="LanChipSmall">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">28dp</item>
+        <item name="android:layout_marginLeft">6dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:minWidth">56dp</item>
+        <item name="android:paddingLeft">12dp</item>
+        <item name="android:paddingRight">12dp</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+</resources>

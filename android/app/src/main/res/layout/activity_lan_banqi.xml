@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F7F4ED">
+
+    <!-- 棋盘：占满可用区域，由 View 内部按 8×4 自适应计算格边长并居中 -->
+    <com.sijia.go.banqi.BanqiBoardView
+        android:id="@+id/boardView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- 常驻 HUD：轮次 + 红/黑/暗计数 -->
+    <LinearLayout
+        android:id="@+id/hud"
+        android:layout_width="match_parent"
+        android:layout_height="26dp"
+        android:layout_gravity="top"
+        android:layout_marginTop="18dp"
+        android:clickable="false"
+        android:focusable="false"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="42dp"
+        android:paddingRight="42dp">
+
+        <TextView
+            android:id="@+id/tvTurn"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:letterSpacing="0.1"
+            android:maxLines="1"
+            android:text="● 等待连接"
+            android:textColor="#1A1A1A"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tvCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:letterSpacing="0.04"
+            android:maxLines="1"
+            android:text="红 0 · 黑 0 · 暗 32"
+            android:textColor="#6B665C"
+            android:textSize="11.5sp" />
+    </LinearLayout>
+
+    <!-- 面板呼出入口：棋盘右下留白 -->
+    <TextView
+        android:id="@+id/btnMore"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="16dp"
+        android:background="@null"
+        android:gravity="center"
+        android:text="⋯"
+        android:textColor="#8A8474"
+        android:textSize="16sp" />
+
+    <!-- 遮罩 -->
+    <View
+        android:id="@+id/scrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#5C181410"
+        android:clickable="true"
+        android:focusable="false"
+        android:visibility="gone" />
+
+    <!-- 右侧操作浮层 -->
+    <LinearLayout
+        android:id="@+id/panel"
+        android:layout_width="252dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="end"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="12dp"
+        android:clickable="true"
+        android:elevation="12dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:id="@+id/panelHead"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp">
+
+            <TextView
+                android:id="@+id/tvPanelTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:letterSpacing="0.28"
+                android:text="操 作"
+                android:textColor="#6B665C"
+                android:textSize="11.5sp" />
+
+            <TextView
+                android:id="@+id/btnPanelClose"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:gravity="center"
+                android:text="✕"
+                android:textColor="#6B665C"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <View
+            android:id="@+id/divHead"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#DDD6C4" />
+
+        <TextView
+            android:id="@+id/rowUndo"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:gravity="center_vertical"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:text="悔棋"
+            android:textColor="#1A1A1A"
+            android:textSize="15sp" />
+
+        <View
+            android:id="@+id/divUndo"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#DDD6C4" />
+
+        <TextView
+            android:id="@+id/rowResign"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:gravity="center_vertical"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:text="认输"
+            android:textColor="#C73E2B"
+            android:textSize="15sp" />
+
+        <View
+            android:id="@+id/divResign"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#DDD6C4" />
+
+        <LinearLayout
+            android:id="@+id/rowRoom"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp">
+
+            <TextView
+                android:id="@+id/tvRoomLabel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:letterSpacing="0.14"
+                android:text="房间号"
+                android:textColor="#1A1A1A"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/tvRoomValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:letterSpacing="0.12"
+                android:text="—"
+                android:textColor="#9A9384"
+                android:textSize="10.5sp" />
+        </LinearLayout>
+
+        <View
+            android:id="@+id/divRoom"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#DDD6C4" />
+
+        <Space
+            android:id="@+id/panelSpace"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <View
+            android:id="@+id/divHome"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#DDD6C4" />
+
+        <TextView
+            android:id="@+id/rowHome"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:gravity="center_vertical"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:text="返回主页"
+            android:textColor="#C73E2B"
+            android:textSize="15sp" />
+    </LinearLayout>
+</FrameLayout>

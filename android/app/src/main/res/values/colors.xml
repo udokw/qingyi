@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#F5F7FA</color>
+    <color name="primary">#3D7AFD</color>
+    <color name="text1">#1D2129</color>
+    <color name="text2">#4E5969</color>
+    <color name="text3">#86909C</color>
+    <color name="card">#FFFFFF</color>
+    <color name="board">#E3B771</color>
+    <color name="ic_launcher_background">#F7F4ED</color>
+</resources>

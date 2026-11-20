@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  五子棋对局页（单机 AI / 本地双人）。
+  版式、发丝线、按钮与围棋/象棋页保持一致：状态行 → 规则行 → 棋盘 → 动作区 → 页脚。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingTop="14dp"
+    android:paddingBottom="14dp">
+
+    <!-- 墨白: 眉题行（对局 · 第 X 手, 右上小印章） -->
+    <LinearLayout
+        android:id="@+id/rowEyebrow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvEyebrow"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:letterSpacing="0.3"
+            android:paddingStart="20dp"
+            android:text="五 子 棋 · 第 一 手"
+            android:textColor="#6B665C"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tvSealMini"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:text="清"
+            android:textColor="#FFFFFF"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+    <!-- 状态行 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tvStatusL"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="我执黑"
+            android:textColor="#1A1A1A"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:padding="6dp"
+            android:text="加载中…"
+            android:textColor="#1A1A1A"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <View
+        android:id="@+id/divTop"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="10dp"
+        android:background="#DDD6C4"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvSubStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center"
+        android:letterSpacing="0.1"
+        android:text="19 路 · 无禁手"
+        android:textColor="#9A9384"
+        android:textSize="14sp" />
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <com.sijia.go.GomokuBoardView
+        android:id="@+id/boardView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp" />
+
+    <View
+        android:id="@+id/pedestal"
+        android:layout_width="140dp"
+        android:layout_height="10dp"
+        android:layout_gravity="center_horizontal"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvMotto"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center"
+        android:letterSpacing="0.3"
+        android:text="五 连 即 胜"
+        android:textColor="#B0A79B"
+        android:textSize="11sp"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/gridTop"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="40dp"
+        android:background="#DDD6C4"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/row1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnUndo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="悔棋" />
+
+        <View
+            android:id="@+id/vG1"
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#DDD6C4"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnHint"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="提示" />
+
+        <View
+            android:id="@+id/vG2"
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#DDD6C4"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnResign"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="认输" />
+    </LinearLayout>
+
+    <View
+        android:id="@+id/gridMid"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#DDD6C4"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnNew"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="新局" />
+
+        <View
+            android:id="@+id/vG3"
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#DDD6C4"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnSave"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="存谱" />
+
+        <View
+            android:id="@+id/vG4"
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#DDD6C4"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnLoad"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="读谱" />
+
+        <View
+            android:id="@+id/vG5"
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#DDD6C4"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnRule"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="禁手关" />
+    </LinearLayout>
+
+    <View
+        android:id="@+id/gridBottom"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#DDD6C4"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvSign"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:gravity="center"
+        android:letterSpacing="0.25"
+        android:text="五 子 棋 · 清 弈"
+        android:textColor="#9A9384"
+        android:textSize="11sp"
+        android:visibility="gone" />
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+</LinearLayout>

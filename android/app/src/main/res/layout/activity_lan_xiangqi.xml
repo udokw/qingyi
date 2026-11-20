@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+
+    <!-- 墨白: 眉题行（保留，默认隐藏） -->
+    <LinearLayout
+        android:id="@+id/rowEyebrow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvEyebrow"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:letterSpacing="0.3"
+            android:paddingStart="20dp"
+            android:text="联 机 · 第 一 着"
+            android:textColor="#6B665C"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- 三列页头：中间两行相对整行居中（FrameLayout + 左右定宽浮层），
+         右侧状态文案长度变化不会带动中间内容位移 -->
+    <FrameLayout
+        android:id="@+id/rowHead"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingLeft="6dp"
+        android:paddingRight="6dp"
+        android:paddingTop="2dp">
+
+        <LinearLayout
+            android:id="@+id/headCenter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingLeft="78dp"
+            android:paddingRight="78dp">
+
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="象棋 · 房号 0000"
+                android:textColor="#1A1A1A"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvConn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:letterSpacing="0.05"
+                android:maxLines="1"
+                android:text="我执红 · 对手 —"
+                android:textColor="#6B665C"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvStatusL"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:maxWidth="64dp"
+            android:text="我执红"
+            android:textColor="#1A1A1A"
+            android:textSize="17sp" />
+
+        <!-- 效果图里「联」徽章在右上角单独一行，状态文字在它下面 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:gravity="end"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvSealMini"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:gravity="center"
+                android:text="联"
+                android:textColor="#FFFFFF"
+                android:textSize="9sp" />
+
+            <TextView
+                android:id="@+id/tvStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:gravity="end"
+                android:maxLines="1"
+                android:maxWidth="76dp"
+                android:text="等待连接…"
+                android:textColor="#1A1A1A"
+                android:textSize="15sp" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- 规则行 -->
+    <TextView
+        android:id="@+id/tvSubStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:letterSpacing="0.05"
+        android:paddingLeft="6dp"
+        android:paddingRight="6dp"
+        android:text="9 × 10 · 中国象棋"
+        android:textColor="#6B665C"
+        android:textSize="12sp" />
+
+    <View
+        android:id="@+id/divTop"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="8dp"
+        android:background="#DDD6C4" />
+
+    <!-- 时钟：红左黑右 -->
+    <LinearLayout
+        android:id="@+id/clockRow"
+        android:layout_width="match_parent"
+        android:layout_height="34dp"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal"
+        android:paddingLeft="6dp"
+        android:paddingRight="6dp">
+
+        <TextView
+            android:id="@+id/tvClockR"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:letterSpacing="0.04"
+            android:text="红 —"
+            android:textColor="#1A1A1A"
+            android:textSize="18sp" />
+
+        <View
+            android:id="@+id/clockDivider"
+            android:layout_width="1dp"
+            android:layout_height="28dp"
+            android:layout_gravity="center_vertical"
+            android:background="#DDD6C4" />
+
+        <TextView
+            android:id="@+id/tvClockB"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:letterSpacing="0.04"
+            android:text="黑 —"
+            android:textColor="#6B665C"
+            android:textSize="18sp" />
+    </LinearLayout>
+
+    <!-- 棋盘占据剩余高度: 空间不足时棋盘按高度等比缩小, 保证底部按钮完整可见 -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="4dp"
+        android:layout_weight="1">
+
+        <com.sijia.go.XiangqiBoardView
+            android:id="@+id/boardView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/tvHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:gravity="center"
+        android:letterSpacing="0.05"
+        android:text=""
+        android:textColor="#6B665C"
+        android:textSize="12sp" />
+
+    <View
+        android:id="@+id/gridTop"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="8dp"
+        android:background="#DDD6C4"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/row1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnUndo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="0dp"
+            android:minWidth="0dp"
+            android:text="悔棋"
+            android:textSize="15sp" />
+
+        <View
+            android:id="@+id/vG1"
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#DDD6C4"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnResign"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="0dp"
+            android:minWidth="0dp"
+            android:text="认输"
+            android:textSize="15sp" />
+
+        <View
+            android:id="@+id/vG2"
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#DDD6C4"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnLeave"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="0dp"
+            android:minWidth="0dp"
+            android:text="离开"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <View
+        android:id="@+id/gridBottom"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#DDD6C4"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvSign"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:letterSpacing="0.25"
+        android:text="局 域 网 · 清 弈"
+        android:textColor="#9A9384"
+        android:textSize="11sp"
+        android:visibility="gone" />
+</LinearLayout>

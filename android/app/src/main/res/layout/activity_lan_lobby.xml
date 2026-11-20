@@ -1,0 +1,500 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingLeft="20dp"
+    android:paddingRight="20dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp">
+
+    <!-- 墨白: 眉题 + 小印章 -->
+    <LinearLayout
+        android:id="@+id/rowEyebrow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvEyebrow"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:letterSpacing="0.3"
+            android:paddingStart="20dp"
+            android:text="联 机 · 局 域 网"
+            android:textColor="#6B665C"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tvSealMini"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:text="联"
+            android:textColor="#FFFFFF"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="联机对弈"
+        android:textColor="#1A1A1A"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvSub"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:letterSpacing="0.1"
+        android:text="同一 Wi-Fi · 房主裁决 · 无需服务器"
+        android:textColor="#8A8474"
+        android:textSize="12sp" />
+
+    <!-- 分段: 创建 / 加入 -->
+    <LinearLayout
+        android:id="@+id/segGroup"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="12dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/segHost"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:letterSpacing="0.08"
+            android:text="创建房间"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/segJoin"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:letterSpacing="0.08"
+            android:text="加入房间"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <ScrollView
+        android:id="@+id/scrollBody"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="10dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="12dp">
+
+            <!-- ============ 创建房间 ============ -->
+            <LinearLayout
+                android:id="@+id/panelHost"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/lbName"
+                    style="@style/LanLabel"
+                    android:text="昵称" />
+
+                <EditText
+                    android:id="@+id/etName"
+                    style="@style/LanInput"
+                    android:hint="输入你的称呼"
+                    android:inputType="text"
+                    android:maxLength="12"
+                    android:singleLine="true" />
+
+                <!-- 棋种已在入口选定，这里只保留一个轻量切换，不再占整行 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/lbGame"
+                        style="@style/LanLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="棋种" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+
+                    <TextView
+                        android:id="@+id/chipGameGo"
+                        style="@style/LanChipSmall"
+                        android:text="围棋" />
+
+                    <TextView
+                        android:id="@+id/chipGameXq"
+                        style="@style/LanChipSmall"
+                        android:text="象棋" />
+
+                    <TextView
+                        android:id="@+id/chipGameGmk"
+                        style="@style/LanChipSmall"
+                        android:text="五子棋" />
+
+                    <TextView
+                        android:id="@+id/chipGameBq"
+                        style="@style/LanChipSmall"
+                        android:text="暗棋" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/lbColor"
+                    style="@style/LanLabel"
+                    android:layout_marginTop="12dp"
+                    android:text="执子" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/chipB"
+                        style="@style/LanChip"
+                        android:text="执黑" />
+
+                    <TextView
+                        android:id="@+id/chipW"
+                        style="@style/LanChip"
+                        android:text="执白" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/lbTime"
+                    style="@style/LanLabel"
+                    android:layout_marginTop="12dp"
+                    android:text="用时 · 读秒 30 秒 3 次" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/chipT0"
+                        style="@style/LanChip"
+                        android:text="不计时" />
+
+                    <TextView
+                        android:id="@+id/chipT1"
+                        style="@style/LanChip"
+                        android:text="10 分" />
+
+                    <TextView
+                        android:id="@+id/chipT2"
+                        style="@style/LanChip"
+                        android:text="20 分" />
+
+                    <TextView
+                        android:id="@+id/chipT3"
+                        style="@style/LanChip"
+                        android:text="30 分" />
+                </LinearLayout>
+
+                <!-- 房间规则：落点/可吃子提示。仅象棋显示，随房间下发给客机 -->
+                <LinearLayout
+                    android:id="@+id/rowHints"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/lbHints"
+                        style="@style/LanLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="落点提示与可吃子提示" />
+
+                    <TextView
+                        android:id="@+id/chipHints"
+                        style="@style/LanChipSmall"
+                        android:text="开" />
+                </LinearLayout>
+
+                <!-- 五子棋房间规则：黑棋禁手（长连/四四/三三）。仅五子棋显示，随房间下发给客机 -->
+                <LinearLayout
+                    android:id="@+id/rowRenju"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/lbRenju"
+                        style="@style/LanLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="黑棋禁手（连珠）" />
+
+                    <TextView
+                        android:id="@+id/chipRenju"
+                        style="@style/LanChipSmall"
+                        android:text="关" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnHost"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="16dp"
+                    android:text="创建房间" />
+
+                <!-- 建房成功后展开 -->
+                <LinearLayout
+                    android:id="@+id/boxHosted"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <View
+                        android:id="@+id/divHosted"
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#DDD6C4" />
+
+                    <TextView
+                        android:id="@+id/lbRoom"
+                        style="@style/LanLabel"
+                        android:layout_marginTop="20dp"
+                        android:text="房间码" />
+
+                    <TextView
+                        android:id="@+id/tvRoomCode"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:letterSpacing="0.35"
+                        android:text="----"
+                        android:textColor="#C73E2B"
+                        android:textSize="34sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/lbAddr"
+                        style="@style/LanLabel"
+                        android:layout_marginTop="18dp"
+                        android:text="房主地址 · 手动加入时使用" />
+
+                    <TextView
+                        android:id="@+id/tvHostAddress"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:letterSpacing="0.04"
+                        android:text="192.168.1.8:41234"
+                        android:textColor="#1A1A1A"
+                        android:textIsSelectable="true"
+                        android:textSize="18sp" />
+
+                    <TextView
+                        android:id="@+id/tvHostMeta"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="围棋 · 20 分钟 · 读秒 30 秒 ×3"
+                        android:textColor="#8A8474"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/tvHostHint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:lineSpacingExtra="4dp"
+                        android:text="同一 Wi-Fi 下会自动出现在对方的「附近房间」。热点或路由器隔离时，请让对方手动输入上面的地址与房间码。"
+                        android:textColor="#8A8474"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/tvGuestJoined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="对手已加入"
+                        android:textColor="#1A1A1A"
+                        android:textSize="14sp"
+                        android:visibility="gone" />
+
+                    <Button
+                        android:id="@+id/btnStart"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="14dp"
+                        android:text="开始对局"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ============ 加入房间 ============ -->
+            <LinearLayout
+                android:id="@+id/panelJoin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/lbCode"
+                    style="@style/LanLabel"
+                    android:text="房间码" />
+
+                <EditText
+                    android:id="@+id/etCode"
+                    style="@style/LanInput"
+                    android:hint="四位数字，例如 4821"
+                    android:inputType="number"
+                    android:letterSpacing="0.3"
+                    android:maxLength="4"
+                    android:singleLine="true" />
+
+                <TextView
+                    android:id="@+id/lbAddr2"
+                    style="@style/LanLabel"
+                    android:layout_marginTop="12dp"
+                    android:text="房主地址 · 可留空" />
+
+                <EditText
+                    android:id="@+id/etAddress"
+                    style="@style/LanInput"
+                    android:hint="留空即可，只按房号自动查找"
+                    android:inputType="text"
+                    android:maxLength="64"
+                    android:singleLine="true" />
+
+                <Button
+                    android:id="@+id/btnJoin"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="16dp"
+                    android:text="加入房间" />
+
+                <View
+                    android:id="@+id/divNearby"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="18dp"
+                    android:background="#DDD6C4" />
+
+                <TextView
+                    android:id="@+id/lbNearby"
+                    style="@style/LanLabel"
+                    android:layout_marginTop="12dp"
+                    android:text="附近房间" />
+
+                <TextView
+                    android:id="@+id/tvScanStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:letterSpacing="0.04"
+                    android:text="正在搜索同一 Wi-Fi 下的房间…"
+                    android:textColor="#8A8474"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvDiagToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:text="发现诊断 ▸"
+                    android:textColor="#8A8474"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvDiagBody"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="#0DFFFFFF"
+                    android:fontFamily="monospace"
+                    android:lineSpacingExtra="2dp"
+                    android:padding="8dp"
+                    android:textColor="#A8A292"
+                    android:textSize="11sp"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:id="@+id/listRooms"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical" />
+
+                <TextView
+                    android:id="@+id/tvJoinHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:lineSpacingExtra="4dp"
+                    android:text="只填四位房号即可加入，不需要输入 IP。搜不到？① 确认两台设备在同一 Wi-Fi；② 关闭手机上的 VPN / 代理（会挡住 mDNS 组播）；③ 部分热点或路由器开了隔离，可再填房主 IP（端口可不填，会按房号自动查询真实端口）。"
+                    android:textColor="#8A8474"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center"
+        android:letterSpacing="0.06"
+        android:textColor="#6B665C"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvFoot"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:letterSpacing="0.25"
+        android:text="QING YI · L A N"
+        android:textColor="#9A9384"
+        android:textSize="10sp" />
+</LinearLayout>

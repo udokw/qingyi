@@ -1,0 +1,7 @@
+# ---- GitHub 语言统计口径 ----
+# 设计稿/原型稿（自包含 HTML 导出，含内嵌音频）不是项目源码: 保留文件, 不参与语言占比
+design-demos/** linguist-documentation=true
+
+# 预编译第三方引擎与资源（KataGo 模型 / Pikafish 神经网络 / .so / 定式库）视为外部依赖
+app/src/main/assets/** linguist-vendored=true
+app/src/main/jniLibs/** linguist-vendored=true

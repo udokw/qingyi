@@ -1,0 +1,43 @@
+# ---- Gradle / Android 构建产物 ----
+build/
+.gradle/
+local.properties
+captures/
+*.apk
+*.aab
+
+# ---- 发布签名: 私钥与口令永不入库 ----
+keystore.properties
+*.jks
+*.keystore
+
+# 引擎交叉编译的本机中间目录
+build-host/
+build-katago/
+build-pachi/
+build-tmp/
+
+# ---- IDE ----
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# ---- Python 缓存 ----
+__pycache__/
+*.pyc
+
+# ---- 验证截图 (仓库根目录) ----
+/*.png
+
+# 设计稿过程截图
+design-demos/shots/
+
+# ---- 第三方引擎源码: 体积过大, 不随仓库分发 ----
+# 需要重新编译 native 引擎时按 README 说明单独获取
+eigen/
+gnugo-3.8/
+katago-src/
+pachi-src/
+gnugo-3.7.10.tar.gz
+gnugo-3.8.tar.gz

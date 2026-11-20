@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>思佳围棋 · 方向 C · 原研哉式留白</title>
+<style>
+  :root{
+    --paper:#F7F4ED;
+    --paper-deep:#F1EDE3;
+    --ink:#1A1A1A;
+    --ink-soft:#4A463E;
+    --ink-faint:#8A8478;
+    --shu:#C73E2B;          /* 朱红 · 印章 */
+    --hair:rgba(26,26,26,.16);
+    --hair-strong:rgba(26,26,26,.34);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:1440px;height:900px;overflow:hidden;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Noto Serif SC","Songti SC","STSong","SimSun","Microsoft YaHei",serif;
+    display:flex;flex-direction:column;
+  }
+  /* ---------- 页眉 ---------- */
+  header{
+    height:64px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;
+    padding:0 72px 14px;border-bottom:1px solid var(--hair);
+  }
+  header .h-left{font-size:13px;letter-spacing:.35em;color:var(--ink-soft);font-family:"Kaiti SC","STKaiti","KaiTi",serif;}
+  header .h-right{font-size:11px;letter-spacing:.18em;color:var(--ink-faint);font-family:"Microsoft YaHei",sans-serif;}
+  /* ---------- 主体 ---------- */
+  main{flex:1;display:flex;align-items:center;justify-content:center;gap:96px;}
+  /* ---------- 页脚 ---------- */
+  footer{
+    height:58px;flex:none;display:flex;align-items:center;justify-content:center;gap:22px;
+    border-top:1px solid var(--hair);
+  }
+  footer .dir{font-size:14px;letter-spacing:.3em;font-family:"Kaiti SC","STKaiti","KaiTi",serif;color:var(--ink);}
+  footer .dot{width:5px;height:5px;background:var(--shu);border-radius:50%;}
+  footer .mood{font-size:12px;letter-spacing:.14em;color:var(--ink-faint);font-family:"Microsoft YaHei",sans-serif;}
+
+  /* ---------- 手机框 ---------- */
+  .phone{
+    width:390px;height:760px;flex:none;
+    background:#FFFDF8;
+    border:1px solid rgba(26,26,26,.55);
+    border-radius:34px;
+    position:relative;
+    box-shadow:0 1px 0 rgba(26,26,26,.06), 0 24px 48px -32px rgba(26,26,26,.28);
+    overflow:hidden;
+  }
+  .phone .notch{
+    position:absolute;top:10px;left:50%;transform:translateX(-50%);
+    width:96px;height:5px;border-radius:3px;background:rgba(26,26,26,.22);
+  }
+  .screen{position:absolute;inset:0;padding:30px 34px 26px;display:flex;flex-direction:column;}
+
+  /* ---------- 状态栏示意 ---------- */
+  .statusbar{
+    height:20px;flex:none;display:flex;justify-content:space-between;align-items:center;
+    font-size:11px;color:var(--ink-soft);font-family:"Microsoft YaHei",sans-serif;
+    letter-spacing:.06em;margin-bottom:6px;
+  }
+  .statusbar .sig{letter-spacing:.24em;font-size:9px;}
+
+  /* ================= 主界面 ================= */
+  .home{position:relative;}
+  /* 19 路发丝线水印：母题长在结构里 */
+  .grid-watermark{
+    position:absolute;top:0;right:-34px;width:250px;height:250px;
+    pointer-events:none;opacity:.07;
+    background-image:
+      repeating-linear-gradient(to right, var(--ink) 0 1px, transparent 1px 13.16px),
+      repeating-linear-gradient(to bottom, var(--ink) 0 1px, transparent 1px 13.16px);
+  }
+  .brand-block{flex:none;margin-top:56px;position:relative;}
+  .brand-kicker{
+    font-size:12px;letter-spacing:.5em;color:var(--ink-faint);
+    font-family:"Microsoft YaHei",sans-serif;margin-bottom:26px;
+  }
+  .brand-title{
+    font-family:"Kaiti SC","STKaiti","KaiTi","SimSun",serif;
+    font-size:64px;font-weight:700;line-height:1;letter-spacing:.06em;
+    color:var(--ink);
+  }
+  .brand-sub{
+    margin-top:22px;font-size:13px;letter-spacing:.3em;color:var(--ink-soft);
+    font-family:"Microsoft YaHei",sans-serif;
+  }
+  /* 朱文印章 */
+  .seal{
+    position:absolute;right:2px;top:44px;width:54px;height:54px;
+    background:var(--shu);border-radius:6px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    box-shadow:inset 0 0 0 2px rgba(247,244,237,.55), inset 0 0 10px rgba(90,10,0,.35);
+    transform:rotate(-2deg);
+  }
+  .seal span{
+    font-family:"Kaiti SC","STKaiti","KaiTi",serif;
+    color:#FBF8F0;font-size:19px;line-height:1.08;letter-spacing:0;font-weight:700;
+  }
+  .seal-rule{position:absolute;right:4px;top:106px;font-size:10px;letter-spacing:.42em;color:var(--ink-faint);
+    font-family:"Microsoft YaHei",sans-serif;writing-mode:vertical-rl;}
+
+  .menu{flex:none;margin-top:64px;border-top:1px solid var(--hair-strong);}
+  .menu-item{
+    display:flex;align-items:baseline;gap:18px;
+    padding:26px 4px;border-bottom:1px solid var(--hair);
+  }
+  .menu-item .num{
+    font-family:"Kaiti SC","STKaiti","KaiTi",serif;font-size:15px;color:var(--shu);
+    width:22px;flex:none;
+  }
+  .menu-item .txt{flex:1;}
+  .menu-item .name{font-size:22px;letter-spacing:.18em;color:var(--ink);
+    font-family:"Kaiti SC","STKaiti","KaiTi","SimSun",serif;font-weight:700;}
+  .menu-item .desc{margin-top:8px;font-size:12px;letter-spacing:.08em;color:var(--ink-faint);
+    font-family:"Microsoft YaHei",sans-serif;}
+  .menu-item .arrow{font-size:14px;color:var(--ink-faint);font-family:serif;}
+
+  .home-foot{margin-top:auto;padding-top:18px;border-top:1px solid var(--hair);
+    display:flex;justify-content:space-between;align-items:center;}
+  .home-foot .v{font-size:12px;color:var(--ink-faint);font-family:"Microsoft YaHei",sans-serif;letter-spacing:.1em;}
+  .home-foot .eng{font-size:11px;color:var(--ink-faint);letter-spacing:.14em;font-family:Georgia,serif;font-style:italic;}
+
+  /* ================= 对弈界面 ================= */
+  .game .g-head{flex:none;margin-top:14px;}
+  .g-crumb{font-size:12px;letter-spacing:.4em;color:var(--ink-faint);
+    font-family:"Microsoft YaHei",sans-serif;display:flex;justify-content:space-between;}
+  .g-crumb .mini-seal{
+    width:22px;height:22px;background:var(--shu);border-radius:3px;color:#FBF8F0;
+    font-size:11px;display:flex;align-items:center;justify-content:center;
+    font-family:"Kaiti SC","STKaiti","KaiTi",serif;letter-spacing:0;font-weight:700;
+    box-shadow:inset 0 0 0 1px rgba(247,244,237,.5);
+  }
+  .g-status{
+    margin-top:18px;padding:16px 2px 15px;
+    border-top:1px solid var(--hair-strong);border-bottom:1px solid var(--hair);
+    display:flex;align-items:baseline;justify-content:space-between;
+  }
+  .g-status .who{font-family:"Kaiti SC","STKaiti","KaiTi",serif;font-size:20px;letter-spacing:.14em;font-weight:700;}
+  .g-status .who .stone-dot{color:var(--ink);}
+  .g-status .turn{font-size:12px;letter-spacing:.24em;color:var(--ink-soft);font-family:"Microsoft YaHei",sans-serif;}
+  .g-status .turn b{color:var(--shu);font-weight:600;}
+
+  .board-wrap{flex:none;margin-top:26px;display:flex;justify-content:center;}
+  canvas#board{display:block;}
+
+  .g-actions{flex:none;margin-top:auto;}
+  .g-actions .rule{border-top:1px solid var(--hair);}
+  .btn-grid{
+    display:grid;grid-template-columns:1fr 1fr 1fr;
+    border-bottom:1px solid var(--hair-strong);
+  }
+  .btn-grid .cell{
+    padding:17px 0 16px;text-align:center;position:relative;
+    border-right:1px solid var(--hair);border-top:1px solid var(--hair);
+  }
+  .btn-grid .cell:nth-child(3n){border-right:none;}
+  .btn-grid .cell:nth-child(-n+3){border-top:none;}
+  .btn-grid .cell .t{
+    font-family:"Kaiti SC","STKaiti","KaiTi",serif;font-size:17px;letter-spacing:.2em;color:var(--ink);font-weight:700;
+  }
+  .btn-grid .cell .e{
+    margin-top:4px;font-size:9px;letter-spacing:.14em;color:var(--ink-faint);
+    font-family:Georgia,serif;font-style:italic;text-transform:uppercase;
+  }
+  .btn-grid .cell.quiet .t{color:var(--ink-soft);font-weight:400;}
+  .btn-grid .cell.danger .t{color:var(--shu);}
+  .g-hint{
+    padding:14px 2px 0;text-align:center;font-size:11px;letter-spacing:.3em;color:var(--ink-faint);
+    font-family:"Microsoft YaHei",sans-serif;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="h-left">思佳围棋 · UI 重设计初稿</div>
+  <div class="h-right">DIRECTION EXPLORATION — TWO SCREENS</div>
+</header>
+
+<main>
+  <!-- ============ 左 · 主界面 ============ -->
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen home">
+      <div class="grid-watermark"></div>
+      <div class="statusbar"><span>9:41</span><span class="sig">▪▪▪ 4G ▮</span></div>
+
+      <div class="brand-block">
+        <div class="brand-kicker">围 棋 · 静 思</div>
+        <div class="brand-title">思佳围棋</div>
+        <div class="brand-sub">GNU GO 引擎 · 单机对弈</div>
+        <div class="seal"><span>思</span><span>佳</span></div>
+        <div class="seal-rule">朱文印</div>
+      </div>
+
+      <nav class="menu">
+        <div class="menu-item">
+          <div class="num">壹</div>
+          <div class="txt">
+            <div class="name">人机对弈</div>
+            <div class="desc">与 GNU Go 引擎对局，可选等级与让子</div>
+          </div>
+          <div class="arrow">›</div>
+        </div>
+        <div class="menu-item">
+          <div class="num">贰</div>
+          <div class="txt">
+            <div class="name">本地双人</div>
+            <div class="desc">两人同机对弈</div>
+          </div>
+          <div class="arrow">›</div>
+        </div>
+        <div class="menu-item">
+          <div class="num">叁</div>
+          <div class="txt">
+            <div class="name">棋谱欣赏</div>
+            <div class="desc">吴清源 vs 本因坊秀哉 等名局</div>
+          </div>
+          <div class="arrow">›</div>
+        </div>
+      </nav>
+
+      <div class="home-foot">
+        <span class="v">v1.0.0</span>
+        <span class="eng">Powered by GNU Go</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 右 · 对弈界面 ============ -->
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen game">
+      <div class="statusbar"><span>9:41</span><span class="sig">▪▪▪ 4G ▮</span></div>
+
+      <div class="g-head">
+        <div class="g-crumb"><span>对 局 · 第 十 五 手</span><span class="mini-seal">思</span></div>
+        <div class="g-status">
+          <div class="who"><span class="stone-dot">●</span> 我执黑</div>
+          <div class="turn">轮到 <b>黑方行棋</b></div>
+        </div>
+      </div>
+
+      <div class="board-wrap"><canvas id="board" width="640" height="640" style="width:320px;height:320px;"></canvas></div>
+
+      <div class="g-actions">
+        <div class="rule"></div>
+        <div class="btn-grid">
+          <div class="cell"><div class="t">悔棋</div><div class="e">Undo</div></div>
+          <div class="cell"><div class="t">停一手</div><div class="e">Pass</div></div>
+          <div class="cell"><div class="t">形势</div><div class="e">Score est.</div></div>
+          <div class="cell quiet"><div class="t">数子</div><div class="e">Count</div></div>
+          <div class="cell danger quiet"><div class="t">认输</div><div class="e">Resign</div></div>
+          <div class="cell quiet"><div class="t">存谱</div><div class="e">Save SGF</div></div>
+        </div>
+        <div class="g-hint">GNU GO · 思 佳 围 棋</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="dir">C · 原研哉式留白</div>
+  <div class="dot"></div>
+  <div class="mood">空与白——和纸、墨色、朱印，让棋自己呼吸；UI 退后，棋盘是主角。</div>
+</footer>
+
+<script>
+(function(){
+  var cv=document.getElementById('board'),ctx=cv.getContext('2d');
+  var S=640, M=44, N=19, CELL=(S-2*M)/(N-1);
+
+  // 木纹底：诚实的材质，暖调
+  var bg=ctx.createLinearGradient(0,0,S,S);
+  bg.addColorStop(0,'#E6C693');bg.addColorStop(.5,'#DFBB85');bg.addColorStop(1,'#D6AE77');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,S,S);
+  // 细木纹
+  ctx.globalAlpha=.06;ctx.strokeStyle='#8A5A26';ctx.lineWidth=1;
+  for(var g=0;g<26;g++){
+    ctx.beginPath();
+    var y=8+g*25;
+    ctx.moveTo(0,y);
+    for(var x=0;x<=S;x+=40){ctx.lineTo(x,y+Math.sin((x+g*37)*.02)*3);}
+    ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+
+  // 格线：发丝级
+  ctx.strokeStyle='rgba(42,28,12,.78)';ctx.lineWidth=1;
+  for(var i=0;i<N;i++){
+    var p=M+i*CELL;
+    ctx.beginPath();ctx.moveTo(M,p);ctx.lineTo(S-M,p);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(p,M);ctx.lineTo(p,S-M);ctx.stroke();
+  }
+  // 外框略重
+  ctx.strokeStyle='rgba(42,28,12,.9)';ctx.lineWidth=1.6;
+  ctx.strokeRect(M,M,S-2*M,S-2*M);
+
+  // 星位
+  ctx.fillStyle='rgba(42,28,12,.85)';
+  [3,9,15].forEach(function(a){[3,9,15].forEach(function(b){
+    ctx.beginPath();ctx.arc(M+a*CELL,M+b*CELL,4.4,0,7);ctx.fill();
+  });});
+
+  var blacks=[[15,3],[3,3],[2,13],[15,15],[9,9],[13,4],[3,12]];
+  var whites=[[3,15],[15,12],[5,4],[12,12],[9,3],[4,9],[14,14]];
+  var R=CELL*0.465;
+
+  function stone(x,y,isBlack){
+    var cx=M+x*CELL,cy=M+y*CELL;
+    ctx.save();
+    ctx.shadowColor='rgba(40,20,5,.4)';ctx.shadowBlur=6;ctx.shadowOffsetY=3;
+    var g=ctx.createRadialGradient(cx-R*.35,cy-R*.4,R*.1,cx,cy,R);
+    if(isBlack){g.addColorStop(0,'#5A5A5A');g.addColorStop(.55,'#232323');g.addColorStop(1,'#0A0A0A');}
+    else{g.addColorStop(0,'#FFFFFF');g.addColorStop(.6,'#F1EEE6');g.addColorStop(1,'#CFC9BB');}
+    ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fillStyle=g;ctx.fill();
+    ctx.restore();
+    if(!isBlack){ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.strokeStyle='rgba(60,45,25,.35)';ctx.lineWidth=1;ctx.stroke();}
+  }
+  blacks.forEach(function(c){stone(c[0],c[1],true);});
+  whites.forEach(function(c){stone(c[0],c[1],false);});
+
+  // 最后一手：白 (14,14) — 朱红小记
+  var lx=M+14*CELL,ly=M+14*CELL;
+  ctx.beginPath();ctx.arc(lx,ly,5,0,7);ctx.fillStyle='#C73E2B';ctx.fill();
+  ctx.beginPath();ctx.arc(lx,ly,R*.62,0,7);ctx.strokeStyle='rgba(199,62,43,.75)';ctx.lineWidth=1.4;ctx.stroke();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+# 仓库根目录只放双端共用文件; 各端的忽略规则见 android/.gitignore 与 ios/.gitignore
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log

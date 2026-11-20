@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>清弈 · 联机对局页渲染稿（与 SwiftUI 实现同源）</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 390px; height: 844px; overflow: hidden; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    display: flex; flex-direction: column;
+  }
+  .statusbar {
+    height: 47px; display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 0 22px 6px 24px; font-size: 12px; font-weight: 600;
+  }
+  .homebar { height: 34px; display: flex; align-items: center; justify-content: center; }
+  .homebar i { width: 134px; height: 5px; border-radius: 3px; background: rgba(0,0,0,.28); }
+  .page { flex: 1; display: flex; flex-direction: column; padding: 4px 0 0 0; }
+  .hair { height: 0.8px; flex: none; }
+
+  /* 页头：中间块绝对居中（left/right 对称 78px），左右浮层定宽，互不参与对方宽度 */
+  .head { position: relative; height: 44px; flex: none; }
+  .headC { position: absolute; left: 84px; right: 84px; top: 0; text-align: center; }
+  .headC .t { font-size: 16px; font-weight: 700; line-height: 21px; }
+  .headC .s { font-size: 11px; line-height: 14px; margin-top: 2px; }
+  .headL { position: absolute; left: 6px; bottom: 0; width: 64px;
+           font-size: 17px; line-height: 22px; white-space: nowrap; }
+  .headR { position: absolute; right: 6px; bottom: 0; width: 76px;
+           display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .seal { width: 18px; height: 18px; color: #fff; font-size: 9px; font-weight: 600;
+          display: flex; align-items: center; justify-content: center; }
+  .status { width: 76px; height: 20px; text-align: right; font-size: 15px; line-height: 20px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .rule { font-size: 12px; line-height: 16px; text-align: center; padding: 10px 6px 0 6px; flex: none; }
+  .clock { display: flex; height: 34px; margin: 6px 6px 4px 6px; align-items: center; flex: none; }
+  .clock div.c { flex: 1; text-align: center; font-size: 18px; line-height: 22px; }
+  .clock .v { width: 0.8px; height: 28px; }
+
+  /* 棋盘：联机页吃满整屏宽度（402pt，不再留 boardInset） */
+  .board { margin: 8px 0 0 0; aspect-ratio: 1 / 1; position: relative; flex: none; }
+  .board.xq { aspect-ratio: 9 / 10; }
+
+  .stateline { font-size: 12px; line-height: 16px; height: 16px; text-align: center; padding: 20px 8px 0 8px; flex: none; }
+  .spacer { flex: 1; min-height: 0; }
+
+  /* 动作行：固定 56px 高，与 GameLayout.actionRowHeight 一致 */
+  .row { display: flex; height: 56px; align-items: center; }
+  .cell { flex: 1; text-align: center; }
+  .cell .zh { font-size: 15px; line-height: 20px; }
+  .cell .en { font-size: 9px; line-height: 12px; letter-spacing: 1px; margin-top: 3px; }
+  .vline { width: 0.8px; align-self: stretch; }
+
+  .foot { font-size: 11px; letter-spacing: 2.6px; text-align: center; padding: 6px 0 4px 0; flex: none; }
+</style>
+</head>
+<body>
+<div class="statusbar"><span>9:41</span><span>5G&nbsp;&nbsp;▮</span></div>
+<div class="page" id="page"></div>
+<div class="homebar"><i></i></div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const id = params.get("theme") === "monument" ? "monument" : "hara";
+const game = params.get("game") === "xiangqi" ? "xiangqi" : "go";
+const statusText = params.get("status") || "等待对手落子";
+const stateText = params.get("stateline") || (game === "go" ? "开局 · 黑先" : "开局 · 红先");
+const simBug = params.get("sim") === "bug";
+const mySide = game === "go" ? "白" : "黑";
+
+const T = id === "hara" ? {
+  windowBg: "#F7F4ED", title: "#1A1A1A", sub: "#6B665C", foot: "#9A9384", accent: "#C73E2B",
+  divider: "#DDD6C4", boardBg: "#E3B771", boardLine: "#3A3226",
+  sealRadius: "2px", boardRadius: "0px"
+} : {
+  windowBg: "#F6F1EA", title: "#3E3A36", sub: "#9A9186", foot: "#B0A79B", accent: "#E8846B",
+  divider: "#E2D6C6", boardBg: "#F3E7CE", boardLine: "#A08B6D",
+  sealRadius: "5px", boardRadius: "10px"
+};
+document.body.style.background = T.windowBg;
+document.body.style.color = T.title;
+document.querySelector(".statusbar").style.color = T.title;
+
+const page = document.getElementById("page");
+
+/* ---------- 页头（与 LanGameView.headerRow 同构） ---------- */
+const head = document.createElement("div");
+head.className = "head";
+head.innerHTML = `
+  <div class="headC">
+    <div class="t">${game === "go" ? "围棋" : "象棋"} · 房号 4821</div>
+    <div class="s" style="color:${T.sub}">我执${mySide} · 对手 棋友Ａ</div>
+  </div>
+  <div class="headL">我执${mySide}</div>
+  <div class="headR">
+    <div class="seal" style="background:${T.accent};border-radius:${T.sealRadius}">联</div>
+    <div class="status">${statusText}</div>
+  </div>
+`;
+page.appendChild(head);
+
+/* 复刻 SwiftUI 的 lineLimit(1)+minimumScaleFactor(0.7)：先缩字号，缩到 70% 仍放不下才省略 */
+(function fitStatus() {
+  const el = head.querySelector(".status");
+  el.style.textOverflow = "clip";
+  let size = 15;
+  while (size > 10.5 && el.scrollWidth > 76) {
+    size -= 0.5;
+    el.style.fontSize = size + "px";
+  }
+  if (el.scrollWidth > 76) el.style.textOverflow = "ellipsis";
+})();
+
+/* 仅用于对照取证：还原「修复前页头高度由内容撑开」的行为（sim=bug）。
+   页头子元素全是绝对定位，height:auto 会塌成 0，所以这里按修复前的算法手算高度：
+   18(徽章) + 2(间距) + 状态行实际行高。 */
+if (simBug) {
+  const el = head.querySelector(".status");
+  const fs = parseFloat(el.style.fontSize || "15");
+  const statusLine = fs >= 15 ? 20 : fs * 1.35;
+  head.style.height = Math.max(37, Math.min(44, 18 + 2 + statusLine)) + "px";
+  el.style.height = "auto";
+  el.style.lineHeight = "normal";
+}
+
+/* ---------- 规则行 ---------- */
+const rule = document.createElement("div");
+rule.className = "rule";
+rule.style.color = T.sub;
+rule.textContent = game === "go"
+  ? "19 路 · 中国规则 · 贴 7.5 目 · 计时"
+  : "9 × 10 · 中国象棋 · 计时";
+page.appendChild(rule);
+
+/* ---------- 发丝线 ---------- */
+const h1 = document.createElement("div");
+h1.className = "hair";
+h1.style.cssText += `background:${T.divider};margin-top:8px`;
+page.appendChild(h1);
+
+/* ---------- 时钟 ---------- */
+const clock = document.createElement("div");
+clock.className = "clock";
+clock.innerHTML = `
+  <div class="c" style="color:${T.accent};font-weight:600">黑 19:27</div>
+  <div class="v" style="background:${T.divider}"></div>
+  <div class="c" style="color:${T.sub}">白 20:00</div>
+`;
+page.appendChild(clock);
+
+/* ---------- 棋盘 ---------- */
+const board = document.createElement("div");
+board.className = "board" + (game === "xiangqi" ? " xq" : "");
+board.style.background = T.boardBg;
+board.style.borderRadius = T.boardRadius;
+board.style.overflow = "hidden";
+const N = game === "xiangqi" ? 9 : 19;
+const starIndex = game === "xiangqi" ? [] : [3, 9, 15];
+let lines = "";
+const pct = i => (4.2 + (i / (N - 1)) * 91.6) + "%";
+for (let i = 0; i < N; i++) {
+  const w = (i === 0 || i === N - 1) ? 1.6 : 0.75;
+  lines += `<div style="position:absolute;left:4.2%;right:4.2%;top:${pct(i)};height:${w}px;background:${T.boardLine}"></div>`;
+  lines += `<div style="position:absolute;top:4.2%;bottom:4.2%;left:${pct(i)};width:${w}px;background:${T.boardLine}"></div>`;
+}
+for (const sx of starIndex) for (const sy of starIndex) {
+  lines += `<div style="position:absolute;left:${pct(sx)};top:${pct(sy)};width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:${T.boardLine}"></div>`;
+}
+board.innerHTML = lines;
+page.appendChild(board);
+
+/* ---------- 棋盘下一行状态 ---------- */
+const state = document.createElement("div");
+state.className = "stateline";
+state.style.color = T.sub;
+state.textContent = stateText;
+page.appendChild(state);
+
+/* ---------- 通栏动作区（棋盘底边 → 动作区：围棋 40、象棋 50） ---------- */
+const items = game === "go"
+  ? [["悔棋", "UNDO", ""], ["停一手", "PASS", ""], ["认输", "RESIGN", T.accent],
+     ["数子", "COUNT", ""], ["存谱", "SAVE SGF", ""], ["离开", "LEAVE", ""]]
+  : [["悔棋", "UNDO", ""], ["认输", "RESIGN", T.accent], ["离开", "LEAVE", ""]];
+
+const controls = document.createElement("div");
+controls.style.marginTop = "30px";
+let grid = `<div class="hair" style="background:${T.divider}"></div>`;
+for (let i = 0; i < items.length; i += 3) {
+  grid += `<div class="row">`;
+  items.slice(i, i + 3).forEach((it, idx) => {
+    if (idx > 0) grid += `<div class="vline" style="background:${T.divider}"></div>`;
+    grid += `<div class="cell">
+      <div class="zh" style="color:${it[2] || T.title}">${it[0]}</div>
+      ${it[1] ? `<div class="en" style="color:${T.sub}">${it[1]}</div>` : ""}
+    </div>`;
+  });
+  grid += `</div><div class="hair" style="background:${T.divider}"></div>`;
+}
+controls.innerHTML = grid;
+page.appendChild(controls);
+
+/* ---------- 余量放在动作区之后（与单机页一致：内容上对齐，底部留白） ---------- */
+const sp = document.createElement("div");
+sp.className = "spacer";
+page.appendChild(sp);
+
+/* ---------- 页脚 ---------- */
+const foot = document.createElement("div");
+foot.className = "foot";
+foot.style.color = T.foot;
+foot.textContent = "局 域 网 · 清 弈";
+page.appendChild(foot);
+</script>
+</body>
+</html>

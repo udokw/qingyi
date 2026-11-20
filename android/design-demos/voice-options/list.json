@@ -1,0 +1,92 @@
+[
+  {
+    "file": "v1.wav",
+    "label": "本色喝令",
+    "text": "将军！",
+    "voice": "zh-CN-YunjianNeural",
+    "rate": "+0%",
+    "pitch": "-2Hz",
+    "dur": 0.75
+  },
+  {
+    "file": "v2.wav",
+    "label": "压嗓断喝",
+    "text": "将军！",
+    "voice": "zh-CN-YunjianNeural",
+    "rate": "+8%",
+    "pitch": "-12Hz",
+    "dur": 0.7
+  },
+  {
+    "file": "v3.wav",
+    "label": "拖腔战吼",
+    "text": "将——军！",
+    "voice": "zh-CN-YunjianNeural",
+    "rate": "-4%",
+    "pitch": "-4Hz",
+    "dur": 1.19
+  },
+  {
+    "file": "v4.wav",
+    "label": "两拍连喝",
+    "text": "将！军！",
+    "voice": "zh-CN-YunjianNeural",
+    "rate": "+14%",
+    "pitch": "-8Hz",
+    "dur": 1.2
+  },
+  {
+    "file": "v5.wav",
+    "label": "沉稳主帅",
+    "text": "将军！",
+    "voice": "zh-CN-YunyangNeural",
+    "rate": "+4%",
+    "pitch": "-10Hz",
+    "dur": 0.45
+  },
+  {
+    "file": "v6.wav",
+    "label": "重低音",
+    "text": "将——军！",
+    "voice": "zh-CN-YunyangNeural",
+    "rate": "-2%",
+    "pitch": "-18Hz",
+    "dur": 0.82
+  },
+  {
+    "file": "v7.wav",
+    "label": "锐利少将",
+    "text": "将军！",
+    "voice": "zh-CN-YunxiNeural",
+    "rate": "+18%",
+    "pitch": "-10Hz",
+    "dur": 0.46
+  },
+  {
+    "file": "v8.wav",
+    "label": "冷面女将",
+    "text": "将军！",
+    "voice": "zh-CN-XiaoxiaoNeural",
+    "rate": "+10%",
+    "pitch": "-16Hz",
+    "dur": 0.52
+  },
+  {
+    "file": "v9.wav",
+    "label": "江湖口气",
+    "text": "将军！",
+    "voice": "zh-CN-liaoning-XiaobeiNeural",
+    "rate": "+6%",
+    "pitch": "-6Hz",
+    "dur": 0.59
+  },
+  {
+    "file": "v10.wav",
+    "label": "秦腔厉喝",
+    "text": "将军！",
+    "voice": "zh-CN-shaanxi-XiaoniNeural",
+    "rate": "+8%",
+    "pitch": "-4Hz",
+    "dur": 0.62
+  }
+]

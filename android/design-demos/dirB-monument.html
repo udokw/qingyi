@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>思佳围棋 · 方向B 纪念碑谷式宁静</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Josefin+Sans:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+  html,body{width:1440px;height:900px;overflow:hidden}
+  body{
+    background:#F3EDE1;
+    font-family:"Avenir Next","Helvetica Neue","PingFang SC","Microsoft YaHei","微软雅黑",sans-serif;
+    color:#3E4A43;
+    position:relative;
+  }
+  /* ---- page background: quiet paper arches ---- */
+  .bg-arch{position:absolute;border:1.5px solid rgba(150,132,100,.16);border-radius:50% 50% 0 0;border-bottom:none}
+  .bg-arch.a1{width:520px;height:260px;left:-160px;top:420px}
+  .bg-arch.a2{width:380px;height:190px;right:-90px;top:120px}
+  .bg-arch.a3{width:240px;height:120px;left:56%;bottom:-4px}
+  .bg-dot{position:absolute;border-radius:50%;background:radial-gradient(circle at 32% 28%,#8b8a83,#2a2a28 62%,#141412)}
+  .bg-dot.d1{width:14px;height:14px;left:120px;top:150px;opacity:.5}
+  .bg-dot.d2{width:10px;height:10px;right:170px;bottom:120px;opacity:.4;background:radial-gradient(circle at 32% 28%,#ffffff,#efe9db 55%,#d6cdb8)}
+
+  .stage{position:relative;width:1440px;height:900px;display:flex;flex-direction:column;align-items:center}
+  .kicker{
+    margin-top:34px;font-family:"Josefin Sans","Cormorant Garamond","Songti SC","STSong","SimSun","宋体",serif;
+    font-weight:300;font-size:13px;letter-spacing:.55em;text-indent:.55em;color:#8A8271;text-transform:uppercase;
+  }
+  .phones{flex:1;display:flex;align-items:center;justify-content:center;gap:96px}
+  .caption{
+    margin-bottom:30px;text-align:center;
+    font-family:"Cormorant Garamond","Songti SC","STSong","SimSun","宋体",serif;
+  }
+  .caption .dir{font-size:17px;font-weight:500;letter-spacing:.35em;text-indent:.35em;color:#4A564E}
+  .caption .tag{font-size:12px;font-weight:400;letter-spacing:.18em;text-indent:.18em;color:#8A8271;margin-top:7px;font-family:"Avenir Next","PingFang SC","Microsoft YaHei",sans-serif}
+
+  /* ================= phone frame (this direction: sand bezel, tall radius) ================= */
+  .phone-wrap{width:335px;height:726px}
+  .phone{
+    width:390px;height:844px;transform:scale(.86);transform-origin:top left;
+    background:linear-gradient(160deg,#EFE7D7,#E6DAC4);
+    border-radius:52px;padding:11px;
+    box-shadow:0 34px 70px rgba(96,80,58,.28),0 6px 18px rgba(96,80,58,.14),inset 0 0 0 1px rgba(255,255,255,.5);
+  }
+  .screen{
+    width:100%;height:100%;border-radius:42px;background:#F8F2E8;overflow:hidden;
+    display:flex;flex-direction:column;position:relative;
+    box-shadow:inset 0 0 0 1px rgba(140,120,90,.14);
+  }
+  .statusbar{
+    height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;
+    padding:4px 30px 0;font-size:12px;letter-spacing:.08em;color:#5F6A61;
+  }
+  .statusbar .sicons{display:flex;gap:5px;align-items:center}
+  .statusbar .sicons i{display:block;border-radius:50%;background:#8A8271;opacity:.75}
+  .statusbar .sicons i:nth-child(1){width:5px;height:5px}
+  .statusbar .sicons i:nth-child(2){width:5px;height:5px}
+  .statusbar .sicons i:nth-child(3){width:5px;height:5px;opacity:.4}
+  .statusbar .speaker{position:absolute;left:50%;top:22px;transform:translateX(-50%);width:64px;height:5px;border-radius:3px;background:rgba(120,105,80,.28)}
+
+  .serif{font-family:"Cormorant Garamond","Songti SC","STSong","SimSun","宋体",serif}
+
+  /* ================= HOME ================= */
+  .hero{flex:none;text-align:center;padding:22px 30px 0;position:relative}
+  .monument{width:104px;height:74px;margin:2px auto 20px;position:relative}
+  .m-orb{
+    position:absolute;left:50%;top:0;transform:translateX(-50%);
+    width:17px;height:17px;border-radius:50%;
+    background:radial-gradient(circle at 32% 28%,#ffffff,#f1ebdd 55%,#d3c9b3);
+    box-shadow:3px 6px 9px rgba(90,75,55,.28);
+  }
+  .m-dome{
+    position:absolute;left:50%;bottom:26px;transform:translateX(-50%);
+    width:60px;height:30px;border-radius:30px 30px 0 0;background:#9DAF96;
+    box-shadow:8px 10px 16px rgba(96,90,70,.18);
+  }
+  .m-pillars{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);display:flex;gap:7px}
+  .m-pillars i{width:9px;height:22px;background:#DCC9A6;border-radius:2px 2px 0 0;box-shadow:4px 6px 8px rgba(96,80,58,.14)}
+  .m-base{position:absolute;left:0;bottom:0;width:104px;height:8px;border-radius:4px;background:#E9CDBB;box-shadow:6px 8px 12px rgba(96,80,58,.16)}
+  .hero h1{
+    font-family:"Cormorant Garamond","Songti SC","STSong","SimSun","宋体",serif;
+    font-weight:400;font-size:44px;letter-spacing:.32em;text-indent:.32em;color:#3E4A43;line-height:1.15;
+  }
+  .hero .sub{
+    margin-top:13px;font-size:13px;letter-spacing:.3em;text-indent:.3em;color:#5F6A61;font-weight:400;
+  }
+  .divider{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:20px}
+  .divider i{display:block;width:52px;height:1px;background:rgba(140,120,90,.4)}
+  .divider b{display:block;width:8px;height:8px;transform:rotate(45deg);background:#C98F72;box-shadow:2px 3px 5px rgba(96,80,58,.25)}
+
+  .entries{flex:1;display:flex;flex-direction:column;justify-content:center;gap:19px;padding:10px 26px 4px}
+  .entry{
+    position:relative;height:98px;border:none;cursor:pointer;text-align:left;
+    border-radius:22px;padding:0 22px;display:flex;align-items:center;gap:17px;
+    font-family:inherit;color:#3E4A43;
+    box-shadow:14px 20px 34px rgba(96,82,60,.20),0 2px 4px rgba(96,82,60,.08);
+  }
+  .entry.e1{background:#F1D9CB;margin-right:12px}
+  .entry.e2{background:#CBD3BC;margin-left:12px}
+  .entry.e3{background:#EDDFC2;margin-right:12px}
+  .entry .num{
+    font-family:"Cormorant Garamond","Josefin Sans",serif;font-weight:300;font-size:34px;
+    color:rgba(62,74,67,.5);width:44px;flex:none;letter-spacing:.04em;
+  }
+  .entry .etxt{flex:1;display:flex;flex-direction:column;gap:6px}
+  .entry .etitle{
+    font-family:"Cormorant Garamond","Songti SC","STSong","SimSun","宋体",serif;
+    font-size:21px;font-weight:500;letter-spacing:.24em;color:#3E4A43;
+  }
+  .entry .esub{font-size:12.5px;letter-spacing:.06em;color:#5A655C;font-weight:400}
+  .motif{flex:none;width:52px;height:40px;position:relative}
+  .st{display:block;border-radius:50%;position:absolute}
+  .st.b{width:24px;height:24px;background:radial-gradient(circle at 32% 28%,#8a897f,#3a3a37 55%,#151514);box-shadow:3px 6px 9px rgba(70,58,42,.35)}
+  .st.w{width:24px;height:24px;background:radial-gradient(circle at 32% 28%,#ffffff,#f2ede1 55%,#d2c9b4);box-shadow:3px 6px 9px rgba(70,58,42,.25);border:1px solid rgba(130,110,80,.25)}
+  .m-duo .st.b{left:6px;top:8px}
+  .m-duo .st.w{left:24px;top:8px}
+  .m-pair .st.b{left:2px;top:8px}
+  .m-pair .st.w{left:27px;top:8px}
+  .m-grid{
+    position:absolute;left:9px;top:3px;width:34px;height:34px;border-radius:5px;
+    background:
+      repeating-linear-gradient(0deg,transparent 0 10px,rgba(130,100,60,.55) 10px 11px),
+      repeating-linear-gradient(90deg,transparent 0 10px,rgba(130,100,60,.55) 10px 11px),
+      #E7D5B2;
+    box-shadow:3px 6px 9px rgba(70,58,42,.22);
+  }
+  .m-grid .st{width:9px;height:9px}
+  .m-grid .g1{left:5px;top:5px;background:radial-gradient(circle at 32% 28%,#8a897f,#3a3a37 55%,#151514)}
+  .m-grid .g2{left:16px;top:16px;background:radial-gradient(circle at 32% 28%,#ffffff,#f2ede1 55%,#d2c9b4)}
+  .m-grid .g3{left:16px;top:5px;background:radial-gradient(circle at 32% 28%,#8a897f,#3a3a37 55%,#151514)}
+
+  .home-footer{
+    flex:none;height:58px;display:flex;align-items:center;justify-content:center;gap:16px;
+    font-size:12px;letter-spacing:.22em;color:#8A8271;
+  }
+  .home-footer .dia{width:5px;height:5px;transform:rotate(45deg);background:rgba(140,120,90,.45)}
+
+  /* ================= GAME ================= */
+  .frieze{
+    flex:none;margin:10px 26px 0;padding:13px 0 12px;text-align:center;position:relative;
+  }
+  .frieze::before,.frieze::after{
+    content:"";position:absolute;left:0;right:0;height:1px;background:rgba(140,120,90,.35);
+  }
+  .frieze::before{top:0}.frieze::after{bottom:0}
+  .frieze .fline{display:flex;align-items:center;justify-content:center;gap:11px}
+  .frieze .flabel{
+    font-family:"Cormorant Garamond","Songti SC","STSong","SimSun","宋体",serif;
+    font-size:15px;font-weight:500;letter-spacing:.3em;color:#3E4A43;
+  }
+  .frieze .fstone{
+    width:15px;height:15px;border-radius:50%;
+    background:radial-gradient(circle at 32% 28%,#8a897f,#3a3a37 55%,#151514);
+    box-shadow:2px 4px 6px rgba(70,58,42,.35);
+  }
+  .frieze .fturn{font-size:14px;letter-spacing:.3em;color:#5F6A61}
+  .frieze .fmeta{margin-top:5px;font-size:12px;letter-spacing:.28em;color:#8A8271}
+
+  .board-zone{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 0}
+  .pedestal{
+    position:relative;border-radius:26px;background:#EFE0C2;padding:0;
+    box-shadow:20px 28px 48px rgba(96,82,60,.28),0 3px 6px rgba(96,82,60,.10);
+  }
+  #board{display:block;width:342px;height:342px;border-radius:26px}
+  .pedestal-base{
+    width:250px;height:13px;margin:13px auto 0;border-radius:7px;background:#DCC7A2;
+    box-shadow:10px 14px 22px rgba(96,82,60,.24);
+  }
+  .board-caption{margin-top:14px;font-size:12px;letter-spacing:.42em;text-indent:.42em;color:#8A8271}
+
+  .actions{flex:none;display:grid;grid-template-columns:repeat(3,1fr);gap:13px;padding:4px 26px 0}
+  .act{
+    height:58px;border:none;border-radius:16px;cursor:pointer;
+    font-family:"Cormorant Garamond","Songti SC","STSong","SimSun","宋体",serif;
+    font-size:15px;font-weight:500;letter-spacing:.26em;text-indent:.26em;color:#3E4A43;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .act.primary{background:#B9C6AC;box-shadow:10px 14px 24px rgba(96,90,60,.26),0 2px 4px rgba(96,90,60,.10)}
+  .act.soft{background:#F1E8D7;box-shadow:8px 12px 20px rgba(96,82,60,.16),0 2px 3px rgba(96,82,60,.07)}
+  .act.quiet{background:rgba(241,232,215,.55);box-shadow:inset 0 0 0 1px rgba(150,130,95,.3);color:#5A655C}
+  .act.danger{background:#F0D8CB;box-shadow:inset 0 0 0 1px rgba(190,130,95,.4);color:#9C5237}
+  .home-indicator{flex:none;height:34px;display:flex;align-items:center;justify-content:center}
+  .home-indicator i{width:120px;height:4px;border-radius:2px;background:rgba(120,105,80,.35)}
+</style>
+</head>
+<body>
+<div class="bg-arch a1"></div><div class="bg-arch a2"></div><div class="bg-arch a3"></div>
+<div class="bg-dot d1"></div><div class="bg-dot d2"></div>
+
+<div class="stage">
+  <div class="kicker">SIJIA GO · UI DIRECTION DRAFT</div>
+  <div class="phones">
+
+    <!-- ============ LEFT · HOME ============ -->
+    <div class="phone-wrap"><div class="phone"><div class="screen">
+      <div class="speaker" style="position:absolute;left:50%;top:22px;transform:translateX(-50%);width:64px;height:5px;border-radius:3px;background:rgba(120,105,80,.28)"></div>
+      <div class="statusbar"><span>9:41</span><span class="sicons"><i></i><i></i><i></i></span></div>
+
+      <div class="hero">
+        <div class="monument">
+          <div class="m-orb"></div>
+          <div class="m-dome"></div>
+          <div class="m-pillars"><i></i><i></i><i></i><i></i></div>
+          <div class="m-base"></div>
+        </div>
+        <h1>思佳围棋</h1>
+        <p class="sub">GNU Go 引擎 · 单机对弈</p>
+        <div class="divider"><i></i><b></b><i></i></div>
+      </div>
+
+      <div class="entries">
+        <button class="entry e1">
+          <span class="num">01</span>
+          <span class="etxt">
+            <span class="etitle">人机对弈</span>
+            <span class="esub">与 GNU Go 引擎对局，可选等级与让子</span>
+          </span>
+          <span class="motif m-duo"><i class="st b"></i><i class="st w"></i></span>
+        </button>
+        <button class="entry e2">
+          <span class="num">02</span>
+          <span class="etxt">
+            <span class="etitle">本地双人</span>
+            <span class="esub">两人同机对弈</span>
+          </span>
+          <span class="motif m-pair"><i class="st b"></i><i class="st w"></i></span>
+        </button>
+        <button class="entry e3">
+          <span class="num">03</span>
+          <span class="etxt">
+            <span class="etitle">棋谱欣赏</span>
+            <span class="esub">吴清源 vs 本因坊秀哉 等名局</span>
+          </span>
+          <span class="motif"><span class="m-grid"><i class="st g1"></i><i class="st g2"></i><i class="st g3"></i></span></span>
+        </button>
+      </div>
+
+      <div class="home-footer"><span>v1.0.0</span><span class="dia"></span><span>Powered by GNU Go</span></div>
+    </div></div></div>
+
+    <!-- ============ RIGHT · GAME ============ -->
+    <div class="phone-wrap"><div class="phone"><div class="screen">
+      <div class="speaker" style="position:absolute;left:50%;top:22px;transform:translateX(-50%);width:64px;height:5px;border-radius:3px;background:rgba(120,105,80,.28)"></div>
+      <div class="statusbar"><span>9:41</span><span class="sicons"><i></i><i></i><i></i></span></div>
+
+      <div class="frieze">
+        <div class="fline">
+          <span class="flabel">我执黑</span>
+          <span class="fstone"></span>
+          <span class="fturn">黑方行棋</span>
+        </div>
+        <div class="fmeta">第 15 手 · 19 路</div>
+      </div>
+
+      <div class="board-zone">
+        <div class="pedestal"><canvas id="board" width="684" height="684"></canvas></div>
+        <div class="pedestal-base"></div>
+        <div class="board-caption">安 静 的 一 手</div>
+      </div>
+
+      <div class="actions">
+        <button class="act primary">悔棋</button>
+        <button class="act soft">停一手</button>
+        <button class="act soft">形势</button>
+        <button class="act quiet">数子</button>
+        <button class="act quiet">存谱</button>
+        <button class="act danger">认输</button>
+      </div>
+      <div class="home-indicator"><i></i></div>
+    </div></div></div>
+
+  </div>
+  <div class="caption">
+    <div class="dir">B · 纪念碑谷式宁静</div>
+    <div class="tag">粉彩、长影与纸上建筑 —— 把每一局棋，安放在一座安静的纪念碑里</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var cv=document.getElementById('board'),ctx=cv.getContext('2d');
+  var S=684,pad=46,cell=(S-pad*2)/18;
+
+  // board ground: warm sand stone slab
+  var bg=ctx.createLinearGradient(0,0,S,S);
+  bg.addColorStop(0,'#F1E3C6');bg.addColorStop(1,'#E9D6B2');
+  ctx.fillStyle=bg;
+  roundRect(ctx,0,0,S,S,52);ctx.fill();
+
+  // faint inner hairline frame
+  ctx.strokeStyle='rgba(150,118,72,.35)';ctx.lineWidth=2;
+  roundRect(ctx,16,16,S-32,S-32,40);ctx.stroke();
+
+  // grid lines
+  ctx.strokeStyle='rgba(133,100,58,.78)';ctx.lineWidth=1.6;
+  ctx.beginPath();
+  for(var i=0;i<19;i++){
+    var p=pad+i*cell;
+    ctx.moveTo(pad,p);ctx.lineTo(S-pad,p);
+    ctx.moveTo(p,pad);ctx.lineTo(p,S-pad);
+  }
+  ctx.stroke();
+
+  // 9 star points (0-indexed 3 / 9 / 15)
+  ctx.fillStyle='rgba(120,90,50,.9)';
+  [3,9,15].forEach(function(a){[3,9,15].forEach(function(b){
+    ctx.beginPath();ctx.arc(pad+a*cell,pad+b*cell,5.4,0,7);ctx.fill();
+  });});
+
+  var black=[[15,3],[3,3],[2,13],[15,15],[9,9],[13,4],[3,12]];
+  var white=[[3,15],[15,12],[5,4],[12,12],[9,3],[4,9],[14,14]];
+  black.forEach(function(pt){stone(pt[0],pt[1],'b',false);});
+  white.forEach(function(pt){stone(pt[0],pt[1],'w',pt[0]===14&&pt[1]===14);});
+
+  function stone(x,y,c,last){
+    var cx=pad+x*cell,cy=pad+y*cell,r=cell*0.47;
+    ctx.save();
+    ctx.shadowColor='rgba(70,55,35,.34)';ctx.shadowBlur=11;ctx.shadowOffsetX=4;ctx.shadowOffsetY=7;
+    var g=ctx.createRadialGradient(cx-r*0.36,cy-r*0.42,r*0.16,cx,cy,r);
+    if(c==='b'){g.addColorStop(0,'#82817a');g.addColorStop(.55,'#3b3b38');g.addColorStop(1,'#141413');}
+    else{g.addColorStop(0,'#ffffff');g.addColorStop(.6,'#f3eee1');g.addColorStop(1,'#d4cbb6');}
+    ctx.fillStyle=g;
+    ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.fill();
+    ctx.restore();
+    if(c==='w'){ctx.strokeStyle='rgba(120,98,66,.35)';ctx.lineWidth=1.4;
+      ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.stroke();}
+    if(last){
+      // last-move marker: soft coral seal
+      ctx.fillStyle='#C9704F';
+      ctx.beginPath();ctx.arc(cx,cy,cell*0.17,0,7);ctx.fill();
+      ctx.strokeStyle='rgba(201,112,79,.55)';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(cx,cy,cell*0.3,0,7);ctx.stroke();
+    }
+  }
+  function roundRect(c,x,y,w,h,r){
+    c.beginPath();
+    c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);
+    c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();
+  }
+})();
+</script>
+</body>
+</html>

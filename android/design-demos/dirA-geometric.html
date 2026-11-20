@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>思佳围棋 · 方向A · 扁平几何</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Rubik:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#171310;
+    --paper:#F3EDDF;
+    --paper2:#FAF6EC;
+    --verm:#C8401F;
+    --wood:#D9A45B;
+    --sans:'Rubik','Archivo','Microsoft YaHei','微软雅黑',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:1440px;height:900px;overflow:hidden;}
+  body{
+    background:var(--paper);
+    font-family:var(--sans);
+    color:var(--ink);
+    position:relative;
+  }
+
+  /* ---------- 页面级几何插画（纯 CSS 装饰层） ---------- */
+  .deco{position:absolute;pointer-events:none;z-index:0;}
+  .deco.bigstone{
+    width:460px;height:460px;border-radius:50%;
+    background:radial-gradient(circle at 32% 28%, #6a655e, #2a251f 48%, #0e0b08 78%);
+    top:-170px;right:-140px;
+  }
+  .deco.ring{
+    width:230px;height:230px;border-radius:50%;
+    border:26px solid var(--verm);
+    left:-90px;top:120px;
+  }
+  .deco.whitestone{
+    width:150px;height:150px;border-radius:50%;
+    background:radial-gradient(circle at 32% 30%, #ffffff, #e8e2d2 55%, #c9c2af 92%);
+    border:3px solid var(--ink);
+    right:70px;bottom:-60px;
+  }
+  .deco.gridfrag{
+    width:240px;height:240px;left:60px;bottom:-40px;
+    background-image:
+      repeating-linear-gradient(to right, var(--ink) 0 2px, transparent 2px 30px),
+      repeating-linear-gradient(to bottom, var(--ink) 0 2px, transparent 2px 30px);
+    opacity:.9;
+  }
+  .deco.vermsq{width:44px;height:44px;background:var(--verm);left:300px;top:64px;}
+
+  /* ---------- 页眉 ---------- */
+  .pagehead{
+    position:absolute;top:34px;left:56px;z-index:2;
+    display:flex;align-items:center;gap:16px;
+  }
+  .pagehead .chip{
+    background:var(--ink);color:var(--paper);
+    font-weight:900;font-size:14px;letter-spacing:2px;
+    padding:7px 14px;
+  }
+  .pagehead .ttl{
+    font-weight:900;font-size:15px;letter-spacing:4px;
+  }
+  .pagehead .dotsep{width:12px;height:12px;border-radius:50%;background:var(--verm);}
+
+  /* ---------- 舞台：两台手机 ---------- */
+  .stage{
+    position:relative;z-index:1;
+    height:100%;
+    display:flex;align-items:center;justify-content:center;
+    gap:110px;padding-top:6px;
+  }
+  .slot{display:flex;flex-direction:column;align-items:center;gap:14px;}
+  .slot .cap{
+    font-weight:700;font-size:14px;letter-spacing:3px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .slot .cap .n{
+    font-weight:900;color:var(--paper);background:var(--verm);
+    padding:3px 9px;font-size:13px;letter-spacing:1px;
+  }
+  .phone-scale{width:361px;height:761px;}
+  .phone{
+    width:410px;height:864px;
+    transform:scale(.88);transform-origin:top left;
+    border:10px solid var(--ink);border-radius:44px;
+    box-shadow:14px 14px 0 var(--ink);
+    background:var(--paper2);
+    overflow:hidden;
+  }
+  .screen{
+    width:390px;height:844px;border-radius:34px;overflow:hidden;
+    position:relative;background:var(--paper2);
+    display:flex;flex-direction:column;
+  }
+
+  /* 手机状态栏示意 */
+  .chrome{
+    height:30px;flex:none;display:flex;align-items:center;justify-content:space-between;
+    padding:0 20px;font-size:12px;font-weight:700;letter-spacing:1px;
+  }
+  .chrome .icons{display:flex;align-items:center;gap:6px;}
+  .chrome .bars{display:flex;align-items:flex-end;gap:2px;}
+  .chrome .bars i{width:4px;background:var(--ink);display:block;}
+  .chrome .bars i:nth-child(1){height:5px;}
+  .chrome .bars i:nth-child(2){height:8px;}
+  .chrome .bars i:nth-child(3){height:11px;}
+  .chrome .bat{width:22px;height:11px;border:2px solid var(--ink);position:relative;}
+  .chrome .bat::after{content:'';position:absolute;left:1px;top:1px;bottom:1px;width:12px;background:var(--ink);}
+
+  /* ================= 屏 1 · 主界面 ================= */
+  .hero{position:relative;height:266px;flex:none;}
+  .hero .gridfrag{
+    position:absolute;right:-30px;top:6px;width:200px;height:230px;
+    background-image:
+      repeating-linear-gradient(to right, var(--ink) 0 2px, transparent 2px 24px),
+      repeating-linear-gradient(to bottom, var(--ink) 0 2px, transparent 2px 24px);
+  }
+  .hero .bstone{
+    position:absolute;right:16px;top:92px;width:120px;height:120px;border-radius:50%;
+    background:radial-gradient(circle at 32% 28%, #6a655e, #2a251f 48%, #0e0b08 78%);
+    border:3px solid var(--ink);
+  }
+  .hero .wstone{
+    position:absolute;right:120px;top:172px;width:60px;height:60px;border-radius:50%;
+    background:radial-gradient(circle at 32% 30%, #ffffff, #e8e2d2 55%, #c9c2af 92%);
+    border:3px solid var(--ink);
+  }
+  .hero .vdot{
+    position:absolute;right:96px;top:56px;width:30px;height:30px;border-radius:50%;
+    background:var(--verm);border:3px solid var(--ink);
+  }
+  .hero .vsq{position:absolute;left:26px;top:200px;width:26px;height:26px;background:var(--verm);}
+  .brand{position:absolute;left:26px;top:36px;}
+  .brand .en{font-weight:900;font-size:14px;letter-spacing:6px;color:var(--verm);}
+  .brand h1{font-size:42px;font-weight:900;letter-spacing:4px;line-height:1.15;margin:6px 0 8px;}
+  .brand .sub{font-size:14px;font-weight:700;letter-spacing:2px;}
+  .brand .rule{display:flex;align-items:center;gap:8px;margin-top:14px;}
+  .brand .rule .bar{width:64px;height:8px;background:var(--ink);}
+  .brand .rule .sq{width:12px;height:12px;background:var(--verm);}
+
+  .menu{flex:1;display:flex;flex-direction:column;gap:18px;padding:26px 26px 0;}
+  .item{
+    display:flex;align-items:center;gap:12px;
+    border:3px solid var(--ink);background:var(--paper2);
+    box-shadow:6px 6px 0 var(--ink);
+    padding:16px 14px;
+  }
+  .item .num{
+    font-weight:900;font-size:20px;color:var(--paper2);
+    background:var(--ink);padding:7px 9px;line-height:1;
+  }
+  .item:nth-child(1) .num{background:var(--verm);}
+  .item .txt{flex:1;display:flex;flex-direction:column;gap:5px;}
+  .item .txt b{font-size:19px;font-weight:900;letter-spacing:2px;}
+  .item .txt span{font-size:12px;font-weight:500;color:#4a423a;letter-spacing:.5px;}
+  .item .tri{
+    width:0;height:0;flex:none;
+    border-top:10px solid transparent;border-bottom:10px solid transparent;
+    border-left:16px solid var(--ink);
+  }
+  .homefoot{
+    flex:none;height:64px;display:flex;align-items:center;justify-content:center;gap:10px;
+    font-size:12px;font-weight:700;letter-spacing:1.5px;color:#4a423a;
+  }
+  .homefoot .mini{width:14px;height:14px;border-radius:50%;border:2px solid var(--ink);}
+  .homefoot .mini.b{background:radial-gradient(circle at 32% 28%, #6a655e, #0e0b08 80%);}
+  .homefoot .mini.w{background:radial-gradient(circle at 32% 30%, #fff, #c9c2af 92%);}
+
+  /* ================= 屏 2 · 对弈界面 ================= */
+  .statusband{
+    flex:none;height:58px;background:var(--ink);color:var(--paper);
+    display:flex;align-items:center;justify-content:space-between;padding:0 18px;
+  }
+  .statusband .me{
+    font-size:14px;font-weight:700;letter-spacing:2px;
+    border:2px solid var(--paper);padding:6px 10px;
+  }
+  .statusband .turn{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:900;letter-spacing:2px;}
+  .statusband .turnstone{
+    width:18px;height:18px;border-radius:50%;border:2px solid var(--paper);
+    background:radial-gradient(circle at 32% 28%, #6a655e, #0e0b08 80%);
+  }
+  .boardzone{flex:none;padding:20px 20px 8px;display:flex;flex-direction:column;align-items:center;}
+  .boardframe{
+    border:4px solid var(--ink);box-shadow:8px 8px 0 var(--ink);
+    background:var(--wood);line-height:0;
+  }
+  #board{width:350px;height:350px;}
+  .boardcap{
+    margin-top:12px;font-size:12px;font-weight:700;letter-spacing:2px;color:#4a423a;
+    display:flex;align-items:center;gap:8px;
+  }
+  .boardcap .lastdot{width:12px;height:12px;background:var(--verm);border:2px solid var(--ink);border-radius:50%;}
+
+  .btns{flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:10px 20px 0;}
+  .row{display:flex;gap:12px;}
+  .row button{
+    font-family:var(--sans);cursor:pointer;
+    border:3px solid var(--ink);
+    font-size:15px;font-weight:900;letter-spacing:2px;
+    height:54px;flex:1;
+    box-shadow:4px 4px 0 var(--ink);
+    background:var(--paper2);color:var(--ink);
+  }
+  .row.r2 .resign{background:var(--verm);color:#fff;}
+  .row.r2 .save{background:var(--ink);color:var(--paper);}
+
+  .breath{
+    flex:none;height:56px;display:flex;align-items:center;justify-content:center;gap:12px;
+  }
+  .breath i{width:14px;height:14px;border-radius:50%;border:2px solid var(--ink);display:block;}
+  .breath i.b{background:radial-gradient(circle at 32% 28%, #6a655e, #0e0b08 80%);}
+  .breath i.w{background:radial-gradient(circle at 32% 30%, #fff, #c9c2af 92%);}
+  .breath i.v{background:var(--verm);border-radius:0;}
+
+  /* ---------- 底部标注 ---------- */
+  .footnote{
+    position:absolute;left:0;right:0;bottom:22px;z-index:2;
+    text-align:center;font-size:13px;font-weight:700;letter-spacing:1.5px;color:#4a423a;
+  }
+  .footnote b{color:var(--ink);font-weight:900;letter-spacing:3px;}
+  .footnote .v{color:var(--verm);font-weight:900;}
+</style>
+</head>
+<body>
+
+  <!-- 页面几何插画装饰层 -->
+  <div class="deco bigstone"></div>
+  <div class="deco ring"></div>
+  <div class="deco whitestone"></div>
+  <div class="deco gridfrag"></div>
+  <div class="deco vermsq"></div>
+
+  <div class="pagehead">
+    <span class="chip">DIRECTION A</span>
+    <span class="ttl">SIJIA&nbsp;GO&nbsp;·&nbsp;UI&nbsp;REDESIGN</span>
+    <span class="dotsep"></span>
+    <span class="ttl" style="letter-spacing:2px;">思佳围棋 · 重设计初稿</span>
+  </div>
+
+  <div class="stage">
+
+    <!-- 左：主界面 -->
+    <div class="slot">
+      <div class="phone-scale"><div class="phone"><div class="screen">
+        <div class="chrome">
+          <span>21:07</span>
+          <span class="icons"><span class="bars"><i></i><i></i><i></i></span><span class="bat"></span></span>
+        </div>
+
+        <div class="hero">
+          <div class="gridfrag"></div>
+          <div class="bstone"></div>
+          <div class="wstone"></div>
+          <div class="vdot"></div>
+          <div class="vsq"></div>
+          <div class="brand">
+            <div class="en">SIJIA GO</div>
+            <h1>思佳围棋</h1>
+            <div class="sub">GNU Go 引擎 · 单机对弈</div>
+            <div class="rule"><span class="bar"></span><span class="sq"></span></div>
+          </div>
+        </div>
+
+        <nav class="menu">
+          <div class="item">
+            <span class="num">01</span>
+            <span class="txt"><b>人机对弈</b><span>与 GNU Go 引擎对局，可选等级与让子</span></span>
+            <span class="tri"></span>
+          </div>
+          <div class="item">
+            <span class="num">02</span>
+            <span class="txt"><b>本地双人</b><span>两人同机对弈</span></span>
+            <span class="tri"></span>
+          </div>
+          <div class="item">
+            <span class="num">03</span>
+            <span class="txt"><b>棋谱欣赏</b><span>吴清源 vs 本因坊秀哉 等名局</span></span>
+            <span class="tri"></span>
+          </div>
+        </nav>
+
+        <div class="homefoot">
+          <span class="mini b"></span>v1.0.0 · Powered by GNU Go<span class="mini w"></span>
+        </div>
+      </div></div></div>
+      <div class="cap"><span class="n">01</span>主界面&nbsp;HOME</div>
+    </div>
+
+    <!-- 右：对弈界面 -->
+    <div class="slot">
+      <div class="phone-scale"><div class="phone"><div class="screen">
+        <div class="chrome">
+          <span>21:07</span>
+          <span class="icons"><span class="bars"><i></i><i></i><i></i></span><span class="bat"></span></span>
+        </div>
+
+        <div class="statusband">
+          <span class="me">我执黑</span>
+          <span class="turn"><span class="turnstone"></span>黑方行棋</span>
+        </div>
+
+        <div class="boardzone">
+          <div class="boardframe"><canvas id="board" width="700" height="700"></canvas></div>
+          <div class="boardcap"><span class="lastdot"></span>最后一手 · 白（14,14）</div>
+        </div>
+
+        <div class="btns">
+          <div class="row r1">
+            <button>悔棋</button><button>停一手</button><button>形势</button><button>数子</button>
+          </div>
+          <div class="row r2">
+            <button class="resign">认输</button>
+            <button class="save">存谱</button>
+          </div>
+        </div>
+
+        <div class="breath">
+          <i class="b"></i><i class="w"></i><i class="b"></i><i class="v"></i><i class="w"></i><i class="b"></i><i class="w"></i>
+        </div>
+      </div></div></div>
+      <div class="cap"><span class="n">02</span>对弈界面&nbsp;GAME</div>
+    </div>
+
+  </div>
+
+  <div class="footnote">
+    <b>方向 A · 扁平几何</b>　PURE-CSS GEOMETRIC —— 墨黑 × 宣纸 × 朱红 × 木色，粗几何海报感的围棋插画。
+    <span class="v">降级：</span>原风格「断点变形彩蛋」在固定机框中降级为静态几何构图。
+  </div>
+
+<script>
+(function(){
+  var cv=document.getElementById('board'),ctx=cv.getContext('2d');
+  ctx.scale(2,2);
+  var S=350,M=17.5,C=(S-2*M)/18;
+  ctx.fillStyle='#D9A45B';ctx.fillRect(0,0,S,S);
+  ctx.strokeStyle='#171310';ctx.lineWidth=1;
+  for(var i=0;i<19;i++){
+    var p=M+i*C;
+    ctx.beginPath();ctx.moveTo(M,p);ctx.lineTo(S-M,p);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(p,M);ctx.lineTo(p,S-M);ctx.stroke();
+  }
+  ctx.lineWidth=2.5;ctx.strokeRect(M,M,S-2*M,S-2*M);
+  ctx.fillStyle='#171310';
+  [3,9,15].forEach(function(a){[3,9,15].forEach(function(b){
+    ctx.beginPath();ctx.arc(M+a*C,M+b*C,3,0,7);ctx.fill();
+  });});
+  function stone(x,y,t){
+    var cx=M+x*C,cy=M+y*C,r=C*0.48;
+    var g=ctx.createRadialGradient(cx-r*0.35,cy-r*0.4,r*0.12,cx,cy,r);
+    if(t==='b'){g.addColorStop(0,'#6a655e');g.addColorStop(0.5,'#2a251f');g.addColorStop(1,'#0e0b08');}
+    else{g.addColorStop(0,'#ffffff');g.addColorStop(0.55,'#efe9da');g.addColorStop(1,'#c9c2af');}
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.fill();
+    ctx.strokeStyle='#171310';ctx.lineWidth=1.2;ctx.stroke();
+  }
+  [[15,3],[3,3],[2,13],[15,15],[9,9],[13,4],[3,12]].forEach(function(p){stone(p[0],p[1],'b');});
+  [[3,15],[15,12],[5,4],[12,12],[9,3],[4,9],[14,14]].forEach(function(p){stone(p[0],p[1],'w');});
+  // 最后一手：白 (14,14) 朱红标记
+  var lx=M+14*C,ly=M+14*C;
+  ctx.strokeStyle='#C8401F';ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(lx,ly,C*0.48+3.5,0,7);ctx.stroke();
+  ctx.fillStyle='#C8401F';ctx.fillRect(lx-3.5,ly-3.5,7,7);
+})();
+</script>
+</body>
+</html>

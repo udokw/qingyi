@@ -1,0 +1,80 @@
+plugins {
+    id 'com.android.application'
+}
+
+// 统一发布密钥: 所有 AI 项目共用 G:\AI\keystore 里的那把。
+// 私钥不入库 —— 本地走 keystore.properties(已 gitignore), CI 走 ANDROID_KEYSTORE_* 环境变量。
+def keystoreProps = new Properties()
+def keystorePropsFile = rootProject.file("keystore.properties")
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+def ksStoreFile = System.getenv("ANDROID_KEYSTORE_FILE") ?: keystoreProps.getProperty("storeFile")
+def ksStorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: keystoreProps.getProperty("storePassword")
+def ksKeyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: keystoreProps.getProperty("keyAlias")
+def ksKeyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: keystoreProps.getProperty("keyPassword")
+def hasReleaseKey = ksStoreFile && new File(ksStoreFile).exists()
+
+android {
+    namespace 'com.sijia.go'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.sijia.go"
+        minSdk 28
+        targetSdk 34
+        versionCode 23
+        versionName "1.2.9"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+        encoding = 'UTF-8'
+    }
+
+    packagingOptions {
+        // libgnugo.so / libpachi.so / libkatago.so 实为 PIE 可执行文件, 禁止 strip 以免破坏
+        doNotStrip "**/libgnugo.so"
+        doNotStrip "**/libpachi.so"
+        doNotStrip "**/libkatago.so"
+        doNotStrip "**/libpikafish.so"
+        doNotStrip "**/libfairy.so"
+    }
+
+    buildFeatures {
+        // 版本号统一走 BuildConfig.VERSION_NAME，界面/协议不再手写
+        buildConfig true
+    }
+
+    signingConfigs {
+        release {
+            if (hasReleaseKey) {
+                storeFile file(ksStoreFile)
+                storePassword ksStorePassword
+                keyAlias ksKeyAlias
+                keyPassword ksKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // 统一发布密钥签名(与其它 AI 项目同一把), 不再沿用 debug 签名。
+            // 没提供密钥时 release 包为未签名状态 —— 故意如此, 避免误发不可覆盖安装的包。
+            signingConfig hasReleaseKey ? signingConfigs.release : null
+        }
+    }
+}
+
+dependencies {
+    // OnBackPressedDispatcher / OnBackPressedCallback: 返回键确认(手势与预测性返回一致)
+    implementation 'androidx.activity:activity:1.8.2'
+}
+
+// kotlin-stdlib 1.8+ 已并入 jdk7/jdk8 的类, 排除旧的分体包避免 duplicate class
+configurations.all {
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+}

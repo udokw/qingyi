@@ -1,0 +1,9 @@
+build/
+DerivedData/
+.tmp-engines/
+.tmp-katago/
+*.xcodeproj
+*.xcworkspace
+.DS_Store
+QingYi-unsigned.ipa
+Payload/

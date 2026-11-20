@@ -1,0 +1,396 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingLeft="24dp"
+    android:paddingRight="24dp"
+    android:paddingBottom="24dp">
+
+    <!-- 主题切换 / 设置(右上角) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="right"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/btnTheme"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:text="主题"
+            android:textColor="#6B665C"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/btnSettings"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="18dp"
+            android:padding="12dp"
+            android:text="设置"
+            android:textColor="#6B665C"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- 标题区顶部留白(固定): 让品牌区整体上移, 不随屏幕高度飘 -->
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="12dp" />
+
+    <!-- 粉彩主题: 穹顶插画(纸上建筑) -->
+    <LinearLayout
+        android:id="@+id/domeGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <View
+            android:id="@+id/dome"
+            android:layout_width="80dp"
+            android:layout_height="40dp" />
+
+        <View
+            android:id="@+id/domeBase"
+            android:layout_width="104dp"
+            android:layout_height="5dp"
+            android:layout_marginTop="3dp" />
+    </LinearLayout>
+
+    <!-- 墨白主题: 题字上方的极简饰线(朱砂印点 + 两侧发丝线) -->
+    <LinearLayout
+        android:id="@+id/rowOrnament"
+        android:layout_width="match_parent"
+        android:layout_height="18dp"
+        android:layout_marginTop="22dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <View
+            android:id="@+id/ornLineL"
+            android:layout_width="42dp"
+            android:layout_height="1dp" />
+
+        <View
+            android:id="@+id/ornDotL"
+            android:layout_width="3dp"
+            android:layout_height="3dp"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp" />
+
+        <View
+            android:id="@+id/ornSeal"
+            android:layout_width="6dp"
+            android:layout_height="6dp" />
+
+        <View
+            android:id="@+id/ornDotR"
+            android:layout_width="3dp"
+            android:layout_height="3dp"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp" />
+
+        <View
+            android:id="@+id/ornLineR"
+            android:layout_width="42dp"
+            android:layout_height="1dp" />
+    </LinearLayout>
+
+    <!-- 标题 + 印章 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="清弈"
+            android:textColor="#1A1A1A"
+            android:textSize="37sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvSeal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.9"
+            android:padding="5dp"
+            android:text="清\n弈"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvSub"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="18dp"
+        android:gravity="center"
+        android:text="多引擎 · 围棋、象棋、五子棋与暗棋"
+        android:textColor="#6B665C"
+        android:textSize="14sp" />
+
+    <!-- 围棋 / 象棋 / 五子棋 / 暗棋 切换 -->
+    <LinearLayout
+        android:id="@+id/segGroup"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="71dp"
+        android:layout_marginBottom="12dp"
+        android:orientation="horizontal"
+        android:padding="3dp">
+
+        <TextView
+            android:id="@+id/segGo"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="围棋"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/segXq"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="象棋"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/segGmk"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="五子棋"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/segBq"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="暗棋"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <!-- 入口 1 -->
+    <LinearLayout
+        android:id="@+id/btnGnu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="18dp"
+        android:paddingRight="18dp"
+        android:paddingTop="28dp"
+        android:paddingBottom="28dp">
+
+        <TextView
+            android:id="@+id/tvP1"
+            android:layout_width="48dp"
+            android:layout_height="wrap_content"
+            android:text="壹"
+            android:textSize="15sp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvT1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="人机对弈"
+                android:textColor="#1A1A1A"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvD1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="KataGo / Pachi / GNU Go · 等级让子可调"
+                android:textColor="#8A8474"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvI1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="›"
+            android:textSize="22sp" />
+    </LinearLayout>
+
+    <View
+        android:id="@+id/div1"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#DDD6C4" />
+
+    <!-- 入口 2 -->
+    <LinearLayout
+        android:id="@+id/btnLocal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="18dp"
+        android:paddingRight="18dp"
+        android:paddingTop="28dp"
+        android:paddingBottom="28dp">
+
+        <TextView
+            android:id="@+id/tvP2"
+            android:layout_width="48dp"
+            android:layout_height="wrap_content"
+            android:text="贰"
+            android:textSize="15sp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvT2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="双人对弈"
+                android:textColor="#1A1A1A"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvD2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="同机对局 · 局域网联机"
+                android:textColor="#8A8474"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvI2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="›"
+            android:textSize="22sp" />
+    </LinearLayout>
+
+    <View
+        android:id="@+id/div2"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#DDD6C4" />
+
+    <!-- 入口 3 -->
+    <LinearLayout
+        android:id="@+id/btnSgf"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="18dp"
+        android:paddingRight="18dp"
+        android:paddingTop="28dp"
+        android:paddingBottom="28dp">
+
+        <TextView
+            android:id="@+id/tvP3"
+            android:layout_width="48dp"
+            android:layout_height="wrap_content"
+            android:text="叁"
+            android:textSize="15sp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvT3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="棋谱欣赏"
+                android:textColor="#1A1A1A"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvD3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="内置棋谱 · 支持导入 SGF"
+                android:textColor="#8A8474"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvI3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="›"
+            android:textSize="22sp" />
+    </LinearLayout>
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2" />
+
+    <View
+        android:id="@+id/divFoot"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginBottom="12dp"
+        android:background="#DDD6C4" />
+
+    <!-- 页脚: 左版本号, 右引擎署名 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tvFoot"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#9A9384"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tvFootR"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Powered by KataGo · Pachi · GNU Go · Pikafish"
+            android:textColor="#9A9384"
+            android:textSize="12sp" />
+    </LinearLayout>
+</LinearLayout>

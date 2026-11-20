@@ -1,0 +1,211 @@
+name: QingYi
+options:
+  bundleIdPrefix: com.qingyi
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.7"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+
+targets:
+  # Pikafish 中国象棋引擎 (GPLv3), 静态链接进 App 进程内运行.
+  # iOS 禁止 fork/exec 子进程, 因此不能按桌面方式走独立可执行文件 + 管道.
+  Pikafish:
+    type: library.static
+    platform: iOS
+    sources:
+      - path: QingYi/Engines/Pikafish/src
+        excludes:
+          - "main.cpp"
+          - "universal/**"
+          - "**/*.S"
+          - "external/decompress/huf_decompress_amd64.S"
+          - "Makefile"
+    settings:
+      base:
+        CLANG_CXX_LANGUAGE_STANDARD: c++17
+        CLANG_CXX_LIBRARY: libc++
+        GCC_C_LANGUAGE_STANDARD: gnu11
+        GCC_PREPROCESSOR_DEFINITIONS:
+          - IS_64BIT=1
+          - NDEBUG=1
+          - USE_NEON=1
+          - ZSTD_DISABLE_ASM=1
+        SKIP_INSTALL: "YES"
+        PRODUCT_NAME: Pikafish
+
+  # KataGo 围棋引擎 (MIT), Eigen CPU 后端, 同样静态链接进 App.
+  KataGo:
+    type: library.static
+    platform: iOS
+    sources:
+      - path: QingYi/Engines/KataGo/cpp
+        excludes:
+          - "main.cpp"
+          - "tests/**"
+          - "command/misc.cpp"
+          - "neuralnet/cuda*"
+          - "neuralnet/metal*"
+          - "neuralnet/onnx*"
+          - "neuralnet/opencl*"
+          - "neuralnet/rocm*"
+          - "neuralnet/trt*"
+          - "neuralnet/dummybackend.cpp"
+          - "neuralnet/*.cu"
+      - path: QingYi/Engines/KataGoBridge.cpp
+      - path: QingYi/Engines/KataGoBridge.h
+      - path: QingYi/Engines/KataGo/cpp/tests/testcommon.cpp
+    settings:
+      base:
+        CLANG_CXX_LANGUAGE_STANDARD: c++17
+        CLANG_CXX_LIBRARY: libc++
+        GCC_PREPROCESSOR_DEFINITIONS:
+          - USE_EIGEN_BACKEND=1
+          - NDEBUG=1
+          - NO_GIT_REVISION=1
+          - NO_LIBZIP=1
+          - BYTE_ORDER=1234
+          - LITTLE_ENDIAN=1234
+        HEADER_SEARCH_PATHS:
+          - "$(SRCROOT)/QingYi/Engines/KataGo/cpp"
+          - "$(SRCROOT)/QingYi/Engines/KataGo/external/eigen"
+          - "$(SRCROOT)/QingYi/Engines/KataGo/cpp/external/tclap-1.2.5/include"
+          - "$(SRCROOT)/QingYi/Engines/KataGo/cpp/external/filesystem-1.5.8/include"
+        SKIP_INSTALL: "YES"
+        PRODUCT_NAME: KataGo
+
+  # Pachi 围棋引擎 (GPLv2), 纯 C, 作为 1-6 级的人机引擎.
+  Pachi:
+    type: library.static
+    platform: iOS
+    sources:
+      - path: QingYi/Engines/Pachi/src
+        excludes:
+          - "COPYING"
+          # Pachi 里存在同名头文件 (random.h / util.h), 放进 Headers 阶段会撞输出路径.
+          # 头文件靠相对路径 include, 不需要参与构建.
+          - "**/*.h"
+          # 以下源码在官方 Makefile 里只在打开对应特性宏时才编译;
+          # 我们不启用这些特性 (NETWORK / DISTRIBUTED / JOSEKIFIX / DCNN /
+          # FIFO / PLUGINS / BOARD_TESTS / EXTRA_ENGINES), 它们依赖的头文件
+          # 会退化成占位宏, 直接编译必然报错.
+          - "josekifix/**"
+          - "distributed/**"
+          - "dcnn/**"
+          - "uct/slave.c"
+          - "uct/plugins.c"
+          - "uct/plugins/**"
+          - "network.c"
+          - "fifo.c"
+          - "engines/external.c"
+          - "pattern/patternscan.c"
+          - "t-unit/test_undo.c"
+          - "t-unit/board_regtest.c"
+          - "t-unit/moggy_regtest.c"
+          - "t-unit/spatial_regtest.c"
+      - path: QingYi/Engines/PachiBridge.cpp
+      - path: QingYi/Engines/PachiBridge.h
+    settings:
+      base:
+        CLANG_CXX_LANGUAGE_STANDARD: c++17
+        CLANG_CXX_LIBRARY: libc++
+        GCC_C_LANGUAGE_STANDARD: gnu11
+        GCC_PREPROCESSOR_DEFINITIONS:
+          - NDEBUG=1
+        HEADER_SEARCH_PATHS:
+          - "$(SRCROOT)/QingYi/Engines/Pachi/src"
+        # Pachi 与 KataGo 有同名头文件 (board.h 等); 关闭 header map
+        # 避免 "board.h" 被解析到 KataGo 的头文件.
+        USE_HEADERMAP: "NO"
+        # 第三方老 C 代码不做警告升级为错误处理
+        GCC_WARN_ABOUT_RETURN_TYPE: "NO"
+        OTHER_CFLAGS:
+          - "-Wno-error"
+        SKIP_INSTALL: "YES"
+        PRODUCT_NAME: Pachi
+
+  QingYi:
+    type: application
+    platform: iOS
+    info:
+      path: QingYi/Info.plist
+      properties:
+        CFBundleDisplayName: 清弈
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        "UISupportedInterfaceOrientations~ipad":
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+        LSSupportsOpeningDocumentsInPlace: true
+        UIFileSharingEnabled: true
+        UIApplicationSupportsIndirectInputEvents: true
+        NSLocalNetworkUsageDescription: 用于在同一局域网内发现并连接对手，开启联机对弈。不会访问互联网。
+        # Bonjour 类型按 Apple 要求写成 _服务名._传输协议，不带尾部点。
+        NSBonjourServices:
+          - "_qingyi._tcp"
+          - "_qingyi-go._tcp"
+          - "_qingyi-xiangqi._tcp"
+          - "_qingyi-gomoku._tcp"
+          - "_qingyi-banqi._tcp"
+    sources:
+      - path: QingYi
+        excludes:
+          - "Info.plist"
+          - "Resources/**"
+          - "Engines/Pikafish/**"
+          - "Engines/KataGo/**"
+          - "Engines/KataGoBridge.cpp"
+          - "Engines/Pachi/**"
+          - "Engines/PachiBridge.cpp"
+      - path: QingYi/Resources
+        buildPhase: resources
+    dependencies:
+      - target: Pikafish
+      - target: KataGo
+      - target: Pachi
+    settings:
+      base:
+        SWIFT_OBJC_BRIDGING_HEADER: QingYi/Engines/QingYi-Bridging-Header.h
+        CLANG_CXX_LANGUAGE_STANDARD: c++17
+        CLANG_CXX_LIBRARY: libc++
+        # bridge.cpp 直接 include 引擎头文件, 宏必须与 Pikafish target 完全一致
+        GCC_PREPROCESSOR_DEFINITIONS:
+          - IS_64BIT=1
+          - NDEBUG=1
+          - USE_NEON=1
+          - ZSTD_DISABLE_ASM=1
+        HEADER_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/QingYi/Engines/Pikafish/src"
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          - "-lz"
+        PRODUCT_BUNDLE_IDENTIFIER: com.qingyi.app
+        PRODUCT_NAME: QingYi
+        MARKETING_VERSION: "1.2.9"
+        CURRENT_PROJECT_VERSION: "23"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: "NO"
+
+schemes:
+  QingYi:
+    build:
+      targets:
+        QingYi: all
+    run:
+      config: Debug
+    archive:
+      config: Release
