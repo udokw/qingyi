@@ -2,6 +2,9 @@
 
 清弈（QingYi）安卓版：围棋与象棋双棋种，纯 Java + Canvas 自绘棋盘，内置本地 AI 引擎与局域网联机。
 
+本目录是双端仓库 `udokw/qingyi` 的安卓部分，iOS 代码在同仓库 `ios/`。
+CI 只监听 `android/**`：本目录有改动才会构建 APK，本地构建前先 `cd android`。
+
 ## 功能
 
 - 围棋：19 / 13 / 9 路，GNU Go / Pachi / KataGo 三引擎，等级与让子可调，形势判断、数子、存谱
