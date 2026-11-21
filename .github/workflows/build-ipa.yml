@@ -15,6 +15,10 @@ on:
 permissions:
   contents: write
 
+env:
+  VERSION_NAME: "1.3.0"
+  VERSION_CODE: "24"
+
 jobs:
   build:
     name: iOS unsigned IPA
@@ -25,6 +29,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: 校验版本号一致
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, re
+          s = open("project.yml", encoding="utf-8").read()
+          name = re.search(r'MARKETING_VERSION:\s*"([^"]+)"', s).group(1)
+          code = re.search(r'CURRENT_PROJECT_VERSION:\s*"(\d+)"', s).group(1)
+          env_name, env_code = os.environ["VERSION_NAME"], os.environ["VERSION_CODE"]
+          assert (name, code) == (env_name, env_code), (name, code, env_name, env_code)
+          ref = os.environ.get("GITHUB_REF_NAME", "")
+          if ref.startswith("v"):
+              assert ref == "v" + env_name, ("tag 与版本不一致", ref, env_name)
+          print("project.yml / workflow 版本一致:", name, code)
+          PY
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -192,11 +212,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ios/QingYi-unsigned.ipa
+          name: 清弈 ${{ github.ref_name }}
           generate_release_notes: false
           body: |
             清弈 ${{ github.ref_name }}（Android + iOS 双端）
 
-            - Android：`QingYi-v1.2.9.apk`，统一发布证书签名，可直接覆盖安装升级（versionCode 23）。
+            - Android：`QingYi-v${{ env.VERSION_NAME }}.apk`，统一发布证书签名，可直接覆盖安装升级（versionCode ${{ env.VERSION_CODE }}）。
             - iOS：`QingYi-unsigned.ipa`，未签名，需自签（AltStore / Sideloadly / 开发者证书重签）后侧载安装。
 
             源码：安卓见 `android/`，iOS 见 `ios/`。

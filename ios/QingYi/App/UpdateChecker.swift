@@ -4,11 +4,12 @@ import WebKit
 
 /// 更新检测的固定配置与纯函数（不依赖主线程，UI 可直接读取）
 enum UpdateSpec {
-    /// 分享目录：根目录下只有「ios」「安卓」两个子文件夹，iOS 安装包在 ios 里。
+    /// 分享目录：根 → 清弈（旧结构可能没有）→ ios / 安卓；iOS 安装包在 ios 里。
     static let sharePageURL = URL(string: "https://share.feijipan.com/s/PRzlQ1Hk")!
 
-    /// 安装包命名约定：清弈-1.2.6.ipa（兼容「清弈 v1.2.6.ipa」、下划线、全角破折号与 (1) 后缀）
-    static let fileNamePattern = "^清弈[-_－— ]*[vV]?([0-9]+(?:\\.[0-9]+){1,3})(?:[(（][0-9]+[)）])?\\.ipa$"
+    /// 安装包命名约定：清弈-v1.3.0.ipa（兼容「清弈 1.3.0.ipa」、下划线、全角破折号与 (1) 后缀）
+    static let fileNamePattern = "^(?:清弈|qingyi)[-_－— ]*[vV]?([0-9]+(?:\\.[0-9]+){1,3})(?:[(（][0-9]+[)）])?\\.ipa$"
+    static let appFolderName = "清弈"
     static let iosFolderName = "ios"
 
     /// 当前安装版本，来自 Info.plist（随 project.yml 的 MARKETING_VERSION 自动同步）
@@ -39,25 +40,25 @@ enum UpdateSpec {
     }
 }
 
-/// 更新检测（小飞机网盘分享目录）。
+/// 更新检测（小飞机网盘分享目录），按 feijipan-update 技能的统一模板实现。
 ///
 /// 为什么用 WKWebView 而不是 URLSession：
-/// `api.feijipan.com` 会按浏览器指纹拦截原生 HTTP 请求——即使 AES 时间戳、
-/// 桌面 UA、Origin/Referer 全部正确，非浏览器客户端拿到的 `list` 也是空的。
-/// 因此这里挂一个不可见的 WKWebView 真实渲染分享页，再用 JS 读 DOM。
+/// 技能文档的 iOS 首选正是「隐藏 WKWebView 读结构化 DOM + 放行 api 导航截 CDN」，
+/// 不手搓 UA / Referer / Cookie / 跳转与会话；页面的请求由分享页自己发出，风控看到的就是正常点击。
 ///
-/// 稳定性处理（v1.2.7 实测出现的「没有找到 ios 文件夹」误报）：
-/// - 每次检测都新建 WKWebView，不复用上一次的页面；
-/// - 先等根目录渲染，再轮询等待「ios」文件夹行真正出现，而不是列表一出现就点；
-/// - 载入超时/JS 执行失败属于「加载失败」，最多自动重试 2 次（共 3 次）；
-/// - 只有页面稳定渲染且确实没有 ios 行，才报「结构里没有 ios 文件夹」。
+/// 稳定性处理：
+/// - 每次检测都新建 WKWebView，加载前先 `about:blank` 卸载旧文档；
+/// - 根目录要等「表头 + 文件夹行」都渲染（连续两次读到同一组文件名）才点；
+/// - 目录结构是 根 → 清弈（旧结构可能没有）→ ios，逐层按名字找，不写死 folderId；
+/// - 进入目标目录后，出现安装包行立即返回；没有则文本稳定约 1.8s 按空目录返回，不干等超时；
+/// - 载入超时/JS 执行失败属于「加载失败」，最多自动重试 2 次（共 3 次）。
 ///
-/// 下载直链（v1.2.9）：
+/// 下载直链：
 /// 分享页点文件只会打开详情面板，点其中的下载按钮才通过 window.open 打开
 /// `api.feijipan.com/ws/file/redirect?...`，该地址再 302 到带签名的 CDN 直链
 /// （`dl-e.feejii.com/...&download_name=xxx.ipa`）。这里复用检测时保留的隐藏页面，
-/// 点文件行 → 点下载按钮 → 拦截 302 的 Location 拿到直链，交给系统浏览器下载；
-/// 任何一步失败都返回 nil，由调用方回退到打开分享页。
+/// 放行接口导航让 WKWebView 自己跟完 302，只在 URL 变成 CDN 时取消并交给系统浏览器；
+/// 绝不把接口地址交给 Safari（否则只会下到 redirect.json「参数有误」）。
 @MainActor
 final class UpdateChecker: NSObject, WKNavigationDelegate {
     /// 桌面版 UA + 大尺寸：移动版布局不会把文件名放进文本节点。
@@ -68,6 +69,8 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
     private static let rootTimeout: TimeInterval = 12
     private static let folderRowTimeout: TimeInterval = 8
     private static let folderContentTimeout: TimeInterval = 10
+    /// 目录里一直没有安装包时，文本稳定这么久就按空目录返回
+    private static let emptyStable: TimeInterval = 1.8
     /// 点文件行后等详情面板（下载按钮）出现
     private static let detailTimeout: TimeInterval = 8
     /// 点下载按钮后等接口地址/302 直链
@@ -79,6 +82,12 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
         /// 目录可达但没有可用的安装包（空目录 / 命名不符 / 确实缺 ios 文件夹）
         case unavailable(String)
         /// 加载失败、超时等可重试问题
+        case failure(String)
+    }
+
+    /// 取直链结果：失败时带可读原因与实际地址，设置页直接展示，方便真机取证
+    enum LinkOutcome {
+        case success(URL)
         case failure(String)
     }
 
@@ -96,11 +105,15 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
     private var captureActive = false
     /// 拦截到的带签名直链
     private var capturedDownloadURL: URL?
+    /// 最近一次放行的取链接口地址，只用于失败文案取证
+    private var lastAPIURL: URL?
 
     private struct PageState {
         let names: [String]
         let isEmptyHint: Bool
         let isLoading: Bool
+        /// 表头（文件名/大小）是否已渲染；没有表头的旧页面靠多等一轮兜底
+        let hasHeader: Bool
     }
 
     private enum AttemptResult {
@@ -170,12 +183,16 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
         let webView = makeWebView(in: host)
         self.webView = webView
 
+        // 加载前先卸载旧文档：about:blank 是同步的，等它完成再进分享页
+        webView.load(URLRequest(url: URL(string: "about:blank")!))
+        try? await Task.sleep(nanoseconds: 150_000_000)
+
         var request = URLRequest(url: UpdateSpec.sharePageURL)
         request.cachePolicy = .reloadIgnoringLocalCacheData
         request.timeoutInterval = 15
         webView.load(request)
 
-        // 1) 等根目录渲染出第一行，或页面明确提示「没有分享文件」
+        // 1) 等根目录「表头 + 文件夹行」都渲染，或页面明确提示「没有分享文件」
         guard let root = await waitForRoot(in: webView) else {
             return .retryable("分享页加载超时。")
         }
@@ -189,8 +206,33 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
             return .success(.update(latest: direct.version, fileName: direct.fileName))
         }
 
+        // 分享根下可能多一层「清弈」应用文件夹（旧结构没有这一层）
+        var appNames = root.names
+        if root.names.contains(where: {
+            Self.normalizedFolderName($0) == Self.normalizedFolderName(UpdateSpec.appFolderName)
+        }) {
+            guard let clicked = await clickListName(UpdateSpec.appFolderName, in: webView) else {
+                return .retryable("在页面上点击「\(UpdateSpec.appFolderName)」文件夹失败。")
+            }
+            guard clicked else {
+                return .retryable("点击「\(UpdateSpec.appFolderName)」文件夹未命中，页面可能正在重绘。")
+            }
+            guard let inner = await waitForFolderRows(in: webView, previous: root.names) else {
+                return .retryable("读取「\(UpdateSpec.appFolderName)」文件夹超时。")
+            }
+            if inner.names.isEmpty {
+                return .structural("分享目录的「\(UpdateSpec.appFolderName)」文件夹为空。")
+            }
+            appNames = inner.names
+        }
+
+        if let direct = newestPackage(in: appNames),
+           UpdateSpec.isNewer(direct.version, than: UpdateSpec.currentVersion) {
+            return .success(.update(latest: direct.version, fileName: direct.fileName))
+        }
+
         // 2) 等「ios」文件夹行真正出现；只有整段超时且页面已稳定渲染，才判定结构缺失
-        switch await waitForIosRow(in: webView) {
+        switch await waitForFolderRow(UpdateSpec.iosFolderName, in: webView) {
         case .found:
             break
         case .emptyRoot:
@@ -202,15 +244,15 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
         }
 
         // 3) 点击进入 ios 文件夹
-        guard let clicked = await clickIosFolder(in: webView) else {
+        guard let clicked = await clickListName(UpdateSpec.iosFolderName, in: webView) else {
             return .retryable("在页面上点击「ios」文件夹失败。")
         }
         guard clicked else {
             return .retryable("点击「ios」文件夹未命中，页面可能正在重绘。")
         }
 
-        // 4) 等子目录内容（与根目录列表不同，或明确提示没有分享文件）
-        guard let content = await waitForFolderContent(in: webView, rootNames: root.names) else {
+        // 4) 等子目录内容：出现安装包立即返回；没有则稳定约 1.8s 按空目录返回
+        guard let content = await waitForFolderContent(in: webView, previous: appNames) else {
             return .retryable("读取「ios」文件夹内容超时。")
         }
         folderNames = content.names
@@ -245,11 +287,12 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
         return webView
     }
 
-    /// 等根目录出现第一行列表或空目录提示。
-    /// 要求连续两次读到同一组文件名，避免把骨架/过渡态当成最终列表。
+    /// 等根目录「表头 + 文件夹行」都渲染：连续两次读到同一组文件名才算稳定；
+    /// 没识别到表头的旧页面再额外多等一轮，避免把骨架屏当最终列表。
     private func waitForRoot(in webView: WKWebView) async -> PageState? {
         let deadline = Date().addingTimeInterval(Self.rootTimeout)
         var previous: [String] = []
+        var stable = 0
         while Date() < deadline {
             if let state = await readPage(in: webView) {
                 if state.names.isEmpty && state.isEmptyHint {
@@ -257,9 +300,14 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
                 }
                 if !state.names.isEmpty {
                     if state.names == previous {
+                        stable += 1
+                    } else {
+                        previous = state.names
+                        stable = 0
+                    }
+                    if stable >= (state.hasHeader ? 1 : 2) {
                         return state
                     }
-                    previous = state.names
                 }
             }
             try? await Task.sleep(nanoseconds: 400_000_000)
@@ -267,15 +315,16 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
         return nil
     }
 
-    /// 轮询等待 ios 文件夹行；整段超时后才根据最后一次观测给出结论
-    private func waitForIosRow(in webView: WKWebView) async -> FolderRow {
+    /// 轮询等待指定文件夹行；整段超时后才根据最后一次观测给出结论
+    private func waitForFolderRow(_ folder: String, in webView: WKWebView) async -> FolderRow {
         let deadline = Date().addingTimeInterval(Self.folderRowTimeout)
         var lastState: PageState?
+        let target = Self.normalizedFolderName(folder)
 
         while Date() < deadline {
             if let state = await readPage(in: webView) {
                 lastState = state
-                if state.names.contains(where: { Self.normalizedFolderName($0) == UpdateSpec.iosFolderName }) {
+                if state.names.contains(where: { Self.normalizedFolderName($0) == target }) {
                     return .found
                 }
             }
@@ -287,12 +336,30 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
         // 最后一眼仍是空列表或仍在加载 → 归为超时，交给重试；不能误报成结构缺失
         guard !last.names.isEmpty, !last.isLoading else { return .timedOut }
         let preview = last.names.prefix(4).joined(separator: "、")
-        return .missing(preview.isEmpty ? "" : "（当前根目录：\(preview)）")
+        return .missing(preview.isEmpty ? "" : "（当前目录：\(preview)）")
     }
 
-    /// 点击 ios 文件夹。返回 nil 表示 JS 执行失败（可重试），false 表示本次没找到元素
-    private func clickIosFolder(in webView: WKWebView) async -> Bool? {
-        await clickListName(UpdateSpec.iosFolderName, in: webView)
+    /// 等进入下一层目录：出现与上一层不同的文件名行，且连续两次一致
+    private func waitForFolderRows(in webView: WKWebView, previous: [String]) async -> PageState? {
+        let deadline = Date().addingTimeInterval(Self.folderRowTimeout)
+        var candidate: [String] = []
+        var stable = 0
+        while Date() < deadline {
+            if let state = await readPage(in: webView) {
+                if state.isEmptyHint && state.names.isEmpty { return state }
+                if !state.names.isEmpty && state.names != previous {
+                    if state.names == candidate {
+                        stable += 1
+                    } else {
+                        candidate = state.names
+                        stable = 0
+                    }
+                    if stable >= 1 { return state }
+                }
+            }
+            try? await Task.sleep(nanoseconds: 350_000_000)
+        }
+        return nil
     }
 
     /// 点击列表里文本匹配的行（文件夹或文件）。nil 表示 JS 执行失败，false 表示没找到
@@ -312,15 +379,36 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
         return text == "ok"
     }
 
-    /// 等子目录内容；必须与根目录列表不同（说明确实进入了 ios），或出现空目录提示
-    private func waitForFolderContent(in webView: WKWebView, rootNames: [String]) async -> PageState? {
+    /// 等目标目录内容：
+    /// - 出现 ipa 行立即返回；
+    /// - 明确提示「没有分享文件」立即返回；
+    /// - 没有安装包时，文本稳定约 1.8s 就按空目录返回，不干等 10s 超时。
+    private func waitForFolderContent(in webView: WKWebView, previous: [String]) async -> PageState? {
         let deadline = Date().addingTimeInterval(Self.folderContentTimeout)
+        var lastSig = ""
+        var stableSince = Date()
         while Date() < deadline {
             if let state = await readPage(in: webView) {
-                if state.isEmptyHint { return state }
-                if !state.names.isEmpty && state.names != rootNames { return state }
+                if state.names.contains(where: { $0.lowercased().hasSuffix(".ipa") }) {
+                    return state
+                }
+                if state.isEmptyHint && state.names.isEmpty {
+                    return state
+                }
+                if state.names != previous {
+                    let sig = state.names.joined(separator: "|")
+                    if state.isLoading {
+                        lastSig = sig
+                        stableSince = Date()
+                    } else if sig != lastSig {
+                        lastSig = sig
+                        stableSince = Date()
+                    } else if Date().timeIntervalSince(stableSince) >= Self.emptyStable {
+                        return state
+                    }
+                }
             }
-            try? await Task.sleep(nanoseconds: 500_000_000)
+            try? await Task.sleep(nanoseconds: 350_000_000)
         }
         return nil
     }
@@ -332,10 +420,12 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
             .map(n => n.textContent.trim())
             .filter(n => n.length > 0);
           const text = document.body ? document.body.innerText : '';
+          const head = document.querySelector('.list-head,.list-header,.file-head,.table-head,.list-title');
           return JSON.stringify({
             names: names,
             empty: text.indexOf('没有分享文件') >= 0,
-            loading: text.indexOf('加载中') >= 0 || text.indexOf('正在加载') >= 0
+            loading: text.indexOf('加载中') >= 0 || text.indexOf('正在加载') >= 0,
+            header: !!head || text.indexOf('文件名') >= 0 || text.indexOf('大小') >= 0
           });
         })()
         """, in: webView)
@@ -345,7 +435,8 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
         let names = (obj["names"] as? [String]) ?? []
         return PageState(names: names,
                          isEmptyHint: (obj["empty"] as? Bool) ?? false,
-                         isLoading: (obj["loading"] as? Bool) ?? false)
+                         isLoading: (obj["loading"] as? Bool) ?? false,
+                         hasHeader: (obj["header"] as? Bool) ?? false)
     }
 
     private func evaluate(_ script: String, in webView: WKWebView) async -> Any? {
@@ -358,10 +449,10 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
 
     // MARK: - 下载直链
 
-    /// 取某个安装包的带签名直链。失败返回 nil，调用方回退到打开分享页。
+    /// 取某个安装包的带签名直链。失败时返回可读原因（带实际地址），设置页直接展示。
     /// 优先复用检测后保留下来的隐藏页面，避免重新加载。
-    func downloadURL(fileName: String) async -> URL? {
-        guard !running, !resolving else { return nil }
+    func downloadURL(fileName: String) async -> LinkOutcome {
+        guard !running, !resolving else { return .failure("正在检查更新，请稍候。") }
         resolving = true
         defer {
             resolving = false
@@ -371,9 +462,13 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
             folderNames = []
             detailFileName = nil
         }
-        guard let host = Self.keyWindow() else { return nil }
-        guard let webView = await ensureFolderPage(in: host, fileName: fileName) else { return nil }
-        guard await openDetail(of: fileName, in: webView) else { return nil }
+        guard let host = Self.keyWindow() else { return .failure("无法获取当前窗口。") }
+        guard let webView = await ensureFolderPage(in: host, fileName: fileName) else {
+            return .failure("重新打开分享页失败。\(pageDetail())")
+        }
+        guard await openDetail(of: fileName, in: webView) else {
+            return .failure("没有在分享页找到「\(fileName)」的下载按钮。\(pageDetail())")
+        }
         return await tapDownloadAndCapture(in: webView)
     }
 
@@ -387,6 +482,8 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
         teardown()
         let webView = makeWebView(in: host)
         self.webView = webView
+        webView.load(URLRequest(url: URL(string: "about:blank")!))
+        try? await Task.sleep(nanoseconds: 150_000_000)
         var request = URLRequest(url: UpdateSpec.sharePageURL)
         request.cachePolicy = .reloadIgnoringLocalCacheData
         request.timeoutInterval = 15
@@ -394,12 +491,30 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
 
         guard let root = await waitForRoot(in: webView) else { return nil }
         // 兼容根目录直接放 ipa 的旧结构
-        if root.names.contains(where: { Self.normalizedFolderName($0) == Self.normalizedFolderName(fileName) }) {
+        if root.names.contains(where: { $0 == fileName }) {
             folderNames = root.names
             return webView
         }
-        guard let clicked = await clickIosFolder(in: webView), clicked else { return nil }
-        guard let content = await waitForFolderContent(in: webView, rootNames: root.names) else { return nil }
+
+        var appNames = root.names
+        if root.names.contains(where: {
+            Self.normalizedFolderName($0) == Self.normalizedFolderName(UpdateSpec.appFolderName)
+        }) {
+            guard let clicked = await clickListName(UpdateSpec.appFolderName, in: webView), clicked,
+                  let inner = await waitForFolderRows(in: webView, previous: root.names) else {
+                return nil
+            }
+            appNames = inner.names
+            if appNames.contains(fileName) {
+                folderNames = appNames
+                return webView
+            }
+        }
+
+        guard let clicked = await clickListName(UpdateSpec.iosFolderName, in: webView), clicked,
+              let content = await waitForFolderContent(in: webView, previous: appNames) else {
+            return nil
+        }
         folderNames = content.names
         return webView
     }
@@ -428,8 +543,9 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
     }
 
     /// 点下载按钮：先挂 window.open 钩子，再点击；接口地址与 302 直链两条路都接住
-    private func tapDownloadAndCapture(in webView: WKWebView) async -> URL? {
+    private func tapDownloadAndCapture(in webView: WKWebView) async -> LinkOutcome {
         capturedDownloadURL = nil
+        lastAPIURL = nil
         captureActive = true
         _ = await evaluate("""
         (() => {
@@ -450,13 +566,15 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
           return 'ok';
         })()
         """, in: webView)
-        guard (raw as? String) == "ok" else { return nil }
+        guard (raw as? String) == "ok" else {
+            return .failure("页面上没有下载按钮。\(pageDetail())")
+        }
 
         // 情况一：页面自行导航到接口（由导航代理接住 302）；情况二：window.open 被钩子拦下
         var navigating = false
         let openDeadline = Date().addingTimeInterval(6)
         while Date() < openDeadline {
-            if let url = capturedDownloadURL { return url }
+            if let url = capturedDownloadURL { return .success(url) }
             if webView.url?.host == "api.feijipan.com" { navigating = true }
             let opened = (await evaluate("window.__qyDirect || ''", in: webView) as? String) ?? ""
             if !opened.isEmpty {
@@ -465,19 +583,43 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
                 navigating = true
                 break
             }
-            if !captureActive && !navigating { return nil }
+            if !captureActive && !navigating {
+                return .failure("点下载按钮后没有打开取链接口。\(pageDetail())")
+            }
             try? await Task.sleep(nanoseconds: 200_000_000)
         }
-        guard navigating || captureActive else { return nil }
+        guard navigating || captureActive else {
+            return .failure("点下载按钮后没有打开取链接口。\(pageDetail())")
+        }
 
         // 等 302 跳到带签名的 CDN 直链
         let redirectDeadline = Date().addingTimeInterval(Self.redirectTimeout)
         while Date() < redirectDeadline {
-            if let url = capturedDownloadURL { return url }
-            if !captureActive { return nil }
+            if let url = capturedDownloadURL { return .success(url) }
+            if !captureActive { break }
             try? await Task.sleep(nanoseconds: 200_000_000)
         }
-        return capturedDownloadURL
+        if let url = capturedDownloadURL { return .success(url) }
+        return .failure("接口没有返回安装包直链。\(pageDetail())")
+    }
+
+    /// 失败取证：只保留接口与当前页的主机 + 路径，去掉会过期的签名参数
+    private func pageDetail() -> String {
+        var parts: [String] = []
+        if let api = lastAPIURL {
+            parts.append("接口 \(Self.shortURL(api))")
+        }
+        if let current = webView?.url {
+            parts.append("当前页 \(Self.shortURL(current))")
+        }
+        return parts.isEmpty ? "" : "\n" + parts.joined(separator: "\n")
+    }
+
+    private static func shortURL(_ url: URL) -> String {
+        let host = url.host ?? ""
+        let path = url.path.isEmpty ? "/" : url.path
+        let hasQuery = url.query != nil ? "?..." : ""
+        return host + path + hasQuery
     }
 
     // MARK: - WKNavigationDelegate（只在取直链阶段生效）
@@ -493,6 +635,7 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
         // 接口地址放行，等它 302 出带签名的直链；
         // iOS 的 WKNavigationAction 不暴露 302 响应，重定向后按 URL 特征识别直链
         if Self.isFeijipanAPI(url) {
+            lastAPIURL = url
             decisionHandler(.allow)
             return
         }
@@ -595,6 +738,7 @@ final class UpdateChecker: NSObject, WKNavigationDelegate {
     private func teardown() {
         captureActive = false
         capturedDownloadURL = nil
+        lastAPIURL = nil
         folderNames = []
         detailFileName = nil
         webView?.stopLoading()

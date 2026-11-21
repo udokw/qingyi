@@ -10,7 +10,7 @@ import android.os.ParcelFileDescriptor;
 import java.io.File;
 import java.io.FileNotFoundException;
 
-/** 把应用私有下载目录里的安装包以 content:// 交给系统安装器(Android 7+ 不允许直接传 file://) */
+/** 把暂存目录里的安装包以 content:// 交给系统安装器(Android 7+ 不允许直接传 file://) */
 public class ApkProvider extends ContentProvider {
     private static final String SUFFIX = ".apkfiles";
 
@@ -54,16 +54,25 @@ public class ApkProvider extends ContentProvider {
 
     @Override
     public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
-        File dir = UpdateInstaller.downloadDir(getContext());
+        Context ctx = getContext();
+        if (ctx == null) throw new FileNotFoundException("no context");
         String name = uri.getLastPathSegment();
-        File target = new File(dir, name);
-        try {
-            if (!target.getCanonicalPath().startsWith(dir.getCanonicalPath())) {
-                throw new FileNotFoundException("outside download dir");
+        if (name == null || name.isEmpty()) throw new FileNotFoundException("no name");
+        // 先找安装前的暂存件（从公共下载目录复制而来），再退回应用专属下载目录
+        File[] dirs = {UpdateInstaller.stagingDir(ctx), UpdateInstaller.downloadDir(ctx)};
+        for (File dir : dirs) {
+            File target = new File(dir, name);
+            try {
+                if (!target.getCanonicalPath().startsWith(dir.getCanonicalPath() + File.separator)) {
+                    continue;
+                }
+            } catch (Exception e) {
+                continue;
             }
-        } catch (Exception e) {
-            throw new FileNotFoundException("bad path");
+            if (target.isFile()) {
+                return ParcelFileDescriptor.open(target, ParcelFileDescriptor.MODE_READ_ONLY);
+            }
         }
-        return ParcelFileDescriptor.open(target, ParcelFileDescriptor.MODE_READ_ONLY);
+        throw new FileNotFoundException("apk not in staging/download dir");
     }
 }

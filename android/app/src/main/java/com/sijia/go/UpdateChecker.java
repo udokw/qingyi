@@ -4,43 +4,50 @@ import android.app.Activity;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
-import android.util.Log;
 import android.webkit.DownloadListener;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 更新检测: 用一个不可见的 WebView 打开小飞机网盘分享页, 让网页自己跑起来再读文本。
+ * 更新检测与取链，按 feijipan-update 技能的统一模板实现。
  *
- * 为什么不用接口: /ws/share/list 对非浏览器客户端只返回空列表(WAF/会话校验),
- * 同样的分享在浏览器里能读到的文件, 命令行请求 total=0。详见公共技能库 feijipan-update。
+ * <p>主路径：直连 {@code GET /ws/share/list} 逐层读「清弈 → 安卓」，拿 fileId 后
+ * {@code GET /ws/file/redirect} 只看 302 的 Location。直连失败时回落到隐藏 WebView
+ * 渲染分享页（桌面 UA + DomStorage，先 about:blank 卸载旧文档），仍不出结果就交给浏览器。
  *
- * 分享目录: 根 → 「安卓」 → 清弈-vX.Y.Z.apk(取版本号最大的那个)
+ * <p>WebView 兜底截到的是接口地址，绝不再交给外部浏览器：在 App 内带着同样的头与
+ * cookie 自己跟最多 3 跳，落到 CDN 才收手，避免下载到 redirect.json（解析包失败）。
  */
 public class UpdateChecker {
 
-    public static final String SHARE_URL = "https://share.feijipan.com/s/PRzlQ1Hk";
-    private static final String PLATFORM_FOLDER = "安卓";
-    private static final String UA =
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                    + "Chrome/131.0.0.0 Safari/537.36";
+    public static final String SHARE_URL = Feijipan.SHARE_URL;
+    private static final String TAG = Feijipan.TAG;
 
-    /** 清弈-v1.2.7.apk / 清弈-1.2.7.apk / QingYi-1.2.7.apk */
+    /** 清弈-v1.3.0.apk / QingYi-1.3.0.apk / 1.3.0.apk */
     private static final Pattern APK_NAME = Pattern.compile(
             "(?:清弈|qingyi)[-_－— ]*[vV]?(\\d+(?:\\.\\d+){1,3})(?:\\(\\d+\\))?\\.apk",
             Pattern.CASE_INSENSITIVE);
-    /** 兜底: 目录里只放了 1.2.7.apk 这种纯版本号 */
     private static final Pattern APK_BARE = Pattern.compile("(\\d+(?:\\.\\d+){1,3})\\.apk");
 
-    private static final long POLL_MS = 1200L;
-    private static final int MAX_POLLS = 18;
+    private static final long POLL_MS = 350L;
+    /** 进入平台目录后，文本稳定这么久仍没有安装包就按空目录返回（不要干等超时） */
+    private static final long EMPTY_STABLE_MS = 1800L;
+    private static final long FALLBACK_TIMEOUT_MS = 30_000L;
 
     public interface Listener {
         void onResult(UpdateChecker checker, Result r);
@@ -55,6 +62,8 @@ public class UpdateChecker {
         public String current = "";
         public String latest = "";
         public String fileName = "";
+        /** 直连接口列目录拿到的文件 id；WebView 兜底时为空 */
+        public String fileId = "";
         public String error = "";
     }
 
@@ -62,19 +71,30 @@ public class UpdateChecker {
     private final String currentVersion;
     private final Listener listener;
     private final Handler ui = new Handler(Looper.getMainLooper());
+    private final ExecutorService worker = Executors.newSingleThreadExecutor();
 
     private WebView webView;
-    private boolean openedFolder;
-    /** 检测已出结论(轮询停止), 但页面仍保留, 供点「下载更新」时取直链 */
-    private boolean finished;
-    /** 页面已释放, 之后再也没法取直链 */
-    private boolean destroyed;
-    private int polls;
-    private int folderClicks;
-    private String prevText = "";
-    private String lastFileName = "";
-
     private volatile String capturedUrl;
+    private boolean destroyed;
+    private boolean delivered;
+
+    private String lastFileName = "";
+    private String lastFileId = "";
+
+    // WebView 兜底的状态
+    private boolean fallbackActive;
+    private boolean sharingLoaded;
+    private long fallbackStart;
+    private List<String> rootNames;
+    private int rootStable;
+    private boolean enteredFolder;
+    private long folderEnteredAt;
+    private String folderSig = "";
+    private long folderStableSince;
+    private boolean folderRetried;
+    private String rootSig = "";
+    private long rootStableSince;
+    private int fallbackPolls;
 
     private UpdateChecker(Activity activity, String currentVersion, Listener listener) {
         this.activity = activity;
@@ -82,18 +102,15 @@ public class UpdateChecker {
         this.listener = listener;
     }
 
-    /**
-     * 发起检测。已有检测在跑 / 界面已销毁时返回 null, 调用方按「没有更新」处理即可。
-     */
+    /** 发起一次检测；界面已销毁时返回 null，调用方按「没有更新」处理。 */
     public static UpdateChecker start(Activity activity, String currentVersion, Listener listener) {
-        if (activity == null || activity.isFinishing()) return null;
-        if (activity.isDestroyed()) return null;
+        if (activity == null || activity.isFinishing() || activity.isDestroyed()) return null;
         UpdateChecker c = new UpdateChecker(activity, currentVersion, listener);
-        c.open();
+        c.begin();
         return c;
     }
 
-    /** 自动检查更新的开关(默认开启), 与 UI 偏好存同一份 SharedPreferences */
+    /** 自动检查更新的开关（默认开启），与 UI 偏好存同一份 SharedPreferences */
     public static boolean autoEnabled(Context ctx) {
         return ctx.getSharedPreferences("ui", Context.MODE_PRIVATE)
                 .getBoolean("update_auto", true);
@@ -104,7 +121,7 @@ public class UpdateChecker {
                 .edit().putBoolean("update_auto", on).apply();
     }
 
-    /** 版本号逐段比较: a 比 b 新返回 true */
+    /** 版本号逐段比较：a 比 b 新返回 true */
     public static boolean versionGreater(String a, String b) {
         String[] pa = a == null ? new String[0] : a.split("\\.");
         String[] pb = b == null ? new String[0] : b.split("\\.");
@@ -125,149 +142,305 @@ public class UpdateChecker {
         }
     }
 
-    private void open() {
+    // ---------------------------------------------------------------- 直连主路径
+
+    private void begin() {
+        worker.execute(() -> {
+            Feijipan.ListResult result = Feijipan.readPlatformFolder();
+            ui.post(() -> {
+                if (destroyed || delivered) return;
+                if (result.ok && !result.entries.isEmpty()) {
+                    deliverFromEntries(result.entries);
+                } else if (result.ok) {
+                    // 目录为空多半是接口被当成非浏览器客户端（只回了空 list），交给 WebView 复核
+                    Log.w(TAG, "direct list empty, fallback to webview");
+                    startWebFallback();
+                } else {
+                    Log.w(TAG, "direct list failed, fallback to webview: " + result.message);
+                    startWebFallback();
+                }
+            });
+        });
+    }
+
+    private void deliverFromEntries(List<Feijipan.Entry> entries) {
+        String bestVer = "";
+        String bestName = "";
+        String bestId = "";
+        for (Feijipan.Entry e : entries) {
+            if (e.folder) continue;
+            String ver = matchVersion(e.name);
+            if (ver.isEmpty()) continue;
+            if (bestVer.isEmpty() || versionGreater(ver, bestVer)) {
+                bestVer = ver;
+                bestName = e.name;
+                bestId = e.fileId;
+            }
+        }
+        Result r = new Result();
+        lastFileName = bestName;
+        lastFileId = bestId;
+        if (!bestVer.isEmpty() && versionGreater(bestVer, currentVersion)) {
+            r.latest = bestVer;
+            r.fileName = bestName;
+        }
+        Log.d(TAG, "direct found latest=" + r.latest + " file=" + r.fileName + " fileId=" + bestId);
+        deliver(r);
+    }
+
+    // ---------------------------------------------------------------- WebView 兜底
+
+    private void startWebFallback() {
+        if (activity.isFinishing() || activity.isDestroyed()) {
+            fail("当前界面已关闭，请重新检查更新。");
+            return;
+        }
+        fallbackActive = true;
+        fallbackStart = System.currentTimeMillis();
         webView = new WebView(activity);
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         // 移动版布局不把文件名写进文本节点, 必须用桌面 UA
-        s.setUserAgentString(UA);
+        s.setUserAgentString(Feijipan.DESKTOP_UA);
         webView.setBackgroundColor(0x00000000);
-        webView.setVisibility(View.INVISIBLE);   // 不可见但仍参与布局, 否则响应式布局会把文件行藏掉
+        webView.setVisibility(View.INVISIBLE);   // 不可见但仍参与布局
 
         webView.setDownloadListener(new DownloadListener() {
             @Override
             public void onDownloadStart(String url, String userAgent, String contentDisposition,
                                         String mimeType, long contentLength) {
-                if (url != null && !url.isEmpty()) capturedUrl = url;
+                if (url != null && !url.isEmpty()) {
+                    capturedUrl = url;
+                    Log.d(TAG, "captured api url(download listener): " + Feijipan.clip(url));
+                }
             }
         });
-        // 页面点下载走的是 window.open(l,"_self"), 在 WebView 里会变成一次导航;
-        // 拦下 api.feijipan.com/ws/downLoad/url 这类地址就拿到了带签名的直链。
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                if (isDownloadUrl(url)) {
+                if (isCaptureUrl(url)) {
                     capturedUrl = url;
-                    return true;        // 别让 WebView 自己下载, 交给 DownloadManager
+                    Log.d(TAG, "captured api url(nav): " + Feijipan.clip(url));
+                    return true;        // 不让 WebView 自己下载，交给 App 内取链
                 }
                 return false;
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
-                ui.postDelayed(UpdateChecker.this::tick, 600);
+                if (url != null && url.contains("share.feijipan.com/s/")) {
+                    sharingLoaded = true;
+                    ui.postDelayed(UpdateChecker.this::tick, 600);
+                }
             }
         });
 
         ViewGroup root = activity.findViewById(android.R.id.content);
         if (root == null) {
-            finish(null, "无法挂载更新检测页面。");
+            fail("无法挂载更新检测页面。");
             return;
         }
         root.addView(webView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        webView.loadUrl(SHARE_URL);
-        // 兜底: 断网或页面结构变化时也要有结论, 不能一直挂着
+        // 先卸载旧文档，避免读文本/点击落在上一次的 DOM 上
+        webView.loadUrl("about:blank");
         ui.postDelayed(() -> {
-            if (!finished) finish(null, "检查更新超时，请稍后重试。");
-        }, 30_000);
+            if (webView != null && !destroyed) {
+                webView.loadUrl(SHARE_URL);
+                ui.postDelayed(UpdateChecker.this::tick, 1200);
+            }
+        }, 250);
     }
 
     private void tick() {
-        if (finished || webView == null) return;
-        if (++polls > MAX_POLLS) {
-            finish(null, "检查更新超时，请稍后重试。");
+        if (destroyed || delivered || webView == null) return;
+        if (!sharingLoaded && System.currentTimeMillis() - fallbackStart > 8000) {
+            fail("分享页加载超时，请稍后重试。");
             return;
         }
-        webView.evaluateJavascript("(document.body?document.body.innerText:'')", value -> {
-            if (finished) return;
-            String text = unquote(value);
-            if (containsApk(text)) {
-                finishFromText(text);
+        if (System.currentTimeMillis() - fallbackStart > FALLBACK_TIMEOUT_MS) {
+            fail("检查更新超时，请稍后重试。");
+            return;
+        }
+        fallbackPolls++;
+        if (fallbackPolls > 90) {
+            fail("检查更新超时，请稍后重试。");
+            return;
+        }
+        webView.evaluateJavascript(STATE_JS, value -> {
+            if (destroyed || delivered) return;
+            JSONObject state = parseState(value);
+            if (state == null) {
+                ui.postDelayed(this::tick, POLL_MS);
                 return;
             }
-            if (text.contains("没有分享文件")) {
-                // 根目录为空或「安卓」目录为空
-                finish(new Result(), null);
-                return;
-            }
-            if (!openedFolder) {
-                if (text.contains(PLATFORM_FOLDER)) {
-                    openedFolder = true;
-                    folderClicks = 1;
-                    webView.evaluateJavascript(clickFolderJs(0), null);
-                }
-            } else if (folderClicks < 4 && text.equals(prevText)) {
-                // 上一轮点击没让页面变化, 换一种命中方式再点
-                webView.evaluateJavascript(clickFolderJs(folderClicks), null);
-                folderClicks++;
-            }
-            prevText = text;
-            ui.postDelayed(this::tick, POLL_MS);
+            handleState(state);
         });
     }
 
-    private void finishFromText(String text) {
-        String[] picked = pickBest(text, APK_NAME);
-        if (picked == null) picked = pickBest(text, APK_BARE);
-        lastFileName = picked == null ? "" : picked[1];
-        Result r = new Result();
-        if (picked == null || !versionGreater(picked[0], currentVersion)) {
-            finish(r, null);
+    private void handleState(JSONObject state) {
+        List<String> names = readNames(state);
+        boolean empty = state.optBoolean("empty");
+        boolean loading = state.optBoolean("loading");
+        boolean header = state.optBoolean("header");
+        String sig = state.optString("sig", "");
+
+        if (!enteredFolder) {
+            if (names.isEmpty()) {
+                if (empty && !loading) {
+                    deliver(new Result());
+                    return;
+                }
+                if (sig.equals(rootSig)) {
+                    if (System.currentTimeMillis() - rootStableSince >= EMPTY_STABLE_MS) {
+                        deliver(new Result());
+                        return;
+                    }
+                } else {
+                    rootSig = sig;
+                    rootStableSince = System.currentTimeMillis();
+                }
+                ui.postDelayed(this::tick, POLL_MS);
+                return;
+            }
+
+            if (hasApk(names)) {
+                finishFromNames(names);
+                return;
+            }
+            if (rootNames == null) {
+                rootNames = names;
+                rootStable = 0;
+            } else if (names.equals(rootNames)) {
+                rootStable++;
+            } else {
+                rootNames = names;
+                rootStable = 0;
+            }
+            // 等「表头 + 文件夹行」都渲染：有表头时两次一致即可，没有表头再多等一轮
+            boolean ready = header ? rootStable >= 1 : rootStable >= 2;
+            if (ready) {
+                enteredFolder = true;
+                folderEnteredAt = System.currentTimeMillis();
+                folderSig = sig;
+                folderStableSince = folderEnteredAt;
+                webView.evaluateJavascript(clickFolderJs(0), null);
+            }
+            ui.postDelayed(this::tick, POLL_MS);
             return;
         }
-        r.ok = true;
-        r.latest = picked[0];
-        r.fileName = picked[1];
-        finish(r, null);
+
+        // 已进入平台目录：出现安装包立刻返回；没有则文本稳定约 1.8s 按空目录返回
+        if (hasApk(names)) {
+            finishFromNames(names);
+            return;
+        }
+        if (empty && !loading) {
+            deliver(new Result());
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (!sig.equals(folderSig)) {
+            folderSig = sig;
+            folderStableSince = now;
+        }
+        if (names.isEmpty() && !loading && now - folderStableSince >= EMPTY_STABLE_MS) {
+            deliver(new Result());
+            return;
+        }
+        if (!folderRetried && now - folderEnteredAt > 5000) {
+            // 点击可能没命中，换一种命中方式再点一次
+            folderRetried = true;
+            webView.evaluateJavascript(clickFolderJs(1), null);
+        }
+        ui.postDelayed(this::tick, POLL_MS);
+    }
+
+    private void finishFromNames(List<String> names) {
+        String[] picked = pickBest(names);
+        lastFileName = picked == null ? "" : picked[1];
+        lastFileId = "";
+        Result r = new Result();
+        if (picked != null && versionGreater(picked[0], currentVersion)) {
+            r.latest = picked[0];
+            r.fileName = picked[1];
+        }
+        deliver(r);
     }
 
     /** @return {版本号, 完整文件名}，取版本号最大的那个 */
-    private static String[] pickBest(String text, Pattern p) {
-        Matcher m = p.matcher(text);
+    private static String[] pickBest(List<String> names) {
         String bestVer = "";
         String bestName = "";
-        while (m.find()) {
-            String ver = m.group(1);
+        for (String name : names) {
+            String ver = matchVersion(name);
+            if (ver.isEmpty()) continue;
             if (bestVer.isEmpty() || versionGreater(ver, bestVer)) {
                 bestVer = ver;
-                bestName = m.group();
+                bestName = name;
             }
         }
         return bestVer.isEmpty() ? null : new String[]{bestVer, bestName};
     }
 
-    private static boolean containsApk(String text) {
-        return text != null && text.toLowerCase().contains(".apk");
+    /** 从「清弈-v1.3.0.apk」这类文件名里取版本号，取不到返回空串 */
+    private static String matchVersion(String name) {
+        Matcher m = APK_NAME.matcher(name);
+        if (m.find()) return m.group(1);
+        Matcher bare = APK_BARE.matcher(name);
+        return bare.find() ? bare.group(1) : "";
     }
 
-    private void finish(Result r, String error) {
-        if (finished) return;
-        finished = true;
-        ui.removeCallbacksAndMessages(null);
-        if (r == null) r = new Result();
-        r.current = currentVersion;
-        if (error != null) {
-            r.ok = false;
-            r.error = error;
-        } else {
-            r.ok = true;
+    private static List<String> readNames(JSONObject state) {
+        List<String> names = new ArrayList<>();
+        JSONArray arr = state.optJSONArray("names");
+        if (arr == null) return names;
+        for (int i = 0; i < arr.length(); i++) {
+            String name = arr.optString(i, "");
+            if (!name.isEmpty()) names.add(name);
         }
-        if (listener != null) listener.onResult(this, r);
+        return names;
     }
+
+    private static JSONObject parseState(String raw) {
+        String text = unquote(raw);
+        if (text.isEmpty()) return null;
+        try {
+            return new JSONObject(text);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static boolean hasApk(List<String> names) {
+        for (String name : names) {
+            if (name.toLowerCase().contains(".apk")) return true;
+        }
+        return false;
+    }
+
+    // ---------------------------------------------------------------- 取直链
 
     /**
-     * 解析安装包真实下载直链(带签名, 会过期, 所以每次现取)。
-     * 流程: 点文件行 → 等 1.5s → 点 .down-btn, 由 DownloadListener 拿到跳转后的地址。
+     * 解析安装包真实下载直链（带签名，会过期，每次现取）。
+     * 直连结果有 fileId 时走接口 302；WebView 兜底则先点文件行与 .down-btn，再把接口地址在 App 内跟完。
      */
     public void resolveUrl(UrlListener l) {
-        if (destroyed || webView == null) {
+        if (destroyed) {
             l.onUrl(null, "更新页面已关闭，请重新检查。");
             return;
         }
+        if (!lastFileId.isEmpty()) {
+            resolveDirect(lastFileId, l);
+            return;
+        }
         if (capturedUrl != null) {
-            l.onUrl(capturedUrl, null);
+            resolveCaptured(capturedUrl, l);
+            return;
+        }
+        if (webView == null) {
+            l.onUrl(null, "安装包信息缺失，请重新检查更新。");
             return;
         }
         String name = lastFileName;
@@ -275,16 +448,33 @@ public class UpdateChecker {
             l.onUrl(null, "安装包信息缺失，请重新检查更新。");
             return;
         }
-        // 页面点下载走的是 window.open(url, "_self"): 先挂钩抽走 URL, 再去点,
-        // 这样既不依赖类名, 也不会让隐藏 WebView 真的去下载。
         webView.evaluateJavascript(HOOK_JS, v -> webView.evaluateJavascript(clickFileJs(name),
                 v2 -> ui.postDelayed(() -> tryClickDownload(l, 0), 1500)));
     }
 
-    /** 文件行点开后页面会渲染下载按钮; 不同版本类名不一致, 多试几轮 */
+    private void resolveDirect(String fileId, UrlListener l) {
+        worker.execute(() -> {
+            Feijipan.LinkResult link = Feijipan.redirect(fileId);
+            if (link.ok) Log.d(TAG, "download url: " + Feijipan.clip(link.url));
+            else Log.w(TAG, "resolve failed: " + link.message);
+            ui.post(() -> l.onUrl(link.ok ? link.url : null, link.ok ? null : link.message));
+        });
+    }
+
+    private void resolveCaptured(String url, UrlListener l) {
+        Log.d(TAG, "captured api url: " + Feijipan.clip(url));
+        worker.execute(() -> {
+            Feijipan.LinkResult link = Feijipan.followCaptured(url);
+            if (link.ok) Log.d(TAG, "download url: " + Feijipan.clip(link.url));
+            else Log.w(TAG, "resolve failed: " + link.message);
+            ui.post(() -> l.onUrl(link.ok ? link.url : null, link.ok ? null : link.message));
+        });
+    }
+
+    /** 文件行点开后页面会渲染下载按钮；不同版本类名不一致，多试几轮 */
     private void tryClickDownload(UrlListener l, int attempt) {
         if (capturedUrl != null) {
-            l.onUrl(capturedUrl, null);
+            resolveCaptured(capturedUrl, l);
             return;
         }
         if (destroyed || webView == null) {
@@ -301,7 +491,7 @@ public class UpdateChecker {
 
     private void waitUrl(UrlListener l, int attempt) {
         if (capturedUrl != null) {
-            l.onUrl(capturedUrl, null);
+            resolveCaptured(capturedUrl, l);
             return;
         }
         if (destroyed || webView == null) {
@@ -309,17 +499,15 @@ public class UpdateChecker {
             return;
         }
         if (attempt >= 18) {
-            l.onUrl(null, "没有取到下载地址，可改用浏览器打开分享页。");
+            l.onUrl(null, "没有取到下载接口地址，已用浏览器打开分享页。");
             return;
         }
         webView.evaluateJavascript("(window.__qyUrl||'')", v -> {
             String u = unquote(v);
             if (u.startsWith("http")) {
                 capturedUrl = u;
-                Log.i("UpdateChecker", "resolved url=" + redact(u));
-                l.onUrl(u, null);
+                resolveCaptured(u, l);
             } else if (attempt % 2 == 1) {
-                // 按钮可能还没渲染出来, 半路再点一次
                 webView.evaluateJavascript(clickDownloadBtnJs(), null);
                 ui.postDelayed(() -> waitUrl(l, attempt + 1), 600);
             } else {
@@ -327,6 +515,58 @@ public class UpdateChecker {
             }
         });
     }
+
+    // ---------------------------------------------------------------- 收尾
+
+    private void deliver(Result r) {
+        if (delivered) return;
+        delivered = true;
+        ui.removeCallbacksAndMessages(null);
+        r.ok = true;
+        r.current = currentVersion;
+        r.fileId = lastFileId;
+        if (listener != null) listener.onResult(this, r);
+    }
+
+    private void fail(String error) {
+        if (delivered) return;
+        delivered = true;
+        ui.removeCallbacksAndMessages(null);
+        Result r = new Result();
+        r.ok = false;
+        r.current = currentVersion;
+        r.error = error;
+        Log.w(TAG, "check failed: " + error);
+        if (listener != null) listener.onResult(this, r);
+    }
+
+    /** 必须在 Activity 销毁或流程结束后调用, 否则 WebView 泄漏 */
+    public void destroy() {
+        destroyed = true;
+        ui.removeCallbacksAndMessages(null);
+        worker.shutdown();
+        if (webView == null) return;
+        try {
+            ViewGroup parent = (ViewGroup) webView.getParent();
+            if (parent != null) parent.removeView(webView);
+            webView.destroy();
+        } catch (Exception ignored) {
+        }
+        webView = null;
+    }
+
+    // ---------------------------------------------------------------- JS
+
+    /** 结构化 DOM + 文本：文件名列表、空目录提示、加载态、表头是否渲染。 */
+    private static final String STATE_JS = "(function(){"
+            + "var out=[];var els=document.querySelectorAll('.list-name');"
+            + "for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').replace(/^\\s+|\\s+$/g,'');if(t)out.push(t);}"
+            + "var text=document.body?document.body.innerText:'';"
+            + "var head=document.querySelector('.list-head,.list-header,.file-head,.table-head,.list-title');"
+            + "var hdr=!!head||text.indexOf('文件名')>=0||text.indexOf('大小')>=0;"
+            + "return JSON.stringify({names:out,empty:text.indexOf('没有分享文件')>=0,"
+            + "loading:text.indexOf('加载中')>=0||text.indexOf('正在加载')>=0,header:hdr,"
+            + "sig:out.join('|')+'#'+text.length});})()";
 
     /** 把页面的 window.open 变成可读的全局变量, 只装一次 */
     private static final String HOOK_JS = "(function(){"
@@ -338,32 +578,22 @@ public class UpdateChecker {
             + "try{return ow.apply(window,arguments);}catch(e){return null;}};"
             + "return 'ok';})()";
 
-    /** 必须在 Activity 销毁或检测结束后调用, 否则 WebView 泄漏 */
-    public void destroy() {
-        destroyed = true;
-        finished = true;
-        ui.removeCallbacksAndMessages(null);
-        if (webView == null) return;
-        try {
-            ViewGroup parent = (ViewGroup) webView.getParent();
-            if (parent != null) parent.removeView(webView);
-            webView.destroy();
-        } catch (Exception ignored) {
-        }
-        webView = null;
-    }
-
     private static String clickFolderJs(int step) {
         String target = "var n=el.parentElement||el;";
         if (step == 1) target = "var n=el;";
-        else if (step == 2) target = "var n=el.closest('[class*=item],[class*=file],[class*=folder],[class*=row]')||el.parentElement||el;";
-        else if (step >= 3) target = "var n=el;for(var k=0;k<3&&n.parentElement;k++){n=n.parentElement;}";
+        else if (step == 2) {
+            target = "var n=el.closest('[class*=item],[class*=file],[class*=folder],[class*=row]')"
+                    + "||el.parentElement||el;";
+        } else if (step >= 3) {
+            target = "var n=el;for(var k=0;k<3&&n.parentElement;k++){n=n.parentElement;}";
+        }
         return "(function(){"
                 + "var list=document.querySelectorAll('span,div,p,a');"
                 + "for(var i=0;i<list.length;i++){"
                 + "var el=list[i];"
                 + "var t=(el.textContent||'').replace(/^\\s+|\\s+$/g,'');"
-                + "if(t!=='" + PLATFORM_FOLDER + "')continue;"
+                + "var low=t.toLowerCase();"
+                + "if(t!=='安卓'&&low!=='android')continue;"
                 + "if(el.children.length>0)continue;"
                 + target
                 + "try{n.click();}catch(e){return 'err';}"
@@ -376,7 +606,6 @@ public class UpdateChecker {
         String want = fileName.replace("\\", "\\\\").replace("'", "\\'");
         return "(function(){"
                 + "var want='" + want + "';"
-                // 分享页的文件名节点固定带 .list-name(与 iOS 端一致), 优先用它
                 + "var names=document.querySelectorAll('.list-name');"
                 + "for(var j=0;j<names.length;j++){"
                 + "var n0=names[j];"
@@ -404,7 +633,6 @@ public class UpdateChecker {
                 + "for(var i=0;i<sels.length;i++){"
                 + "var b=document.querySelector(sels[i]);"
                 + "if(b&&hit(b))return 'ok';}"
-                // 没有稳定类名时按文案找: 下载 / 立即下载 / 下载文件
                 + "var list=document.querySelectorAll('button,span,div,a');"
                 + "for(var k=0;k<list.length;k++){"
                 + "var el=list[k];"
@@ -415,11 +643,12 @@ public class UpdateChecker {
                 + "return 'nf';})()";
     }
 
-    /** 页面里真正的下载跳转地址(带签名, 也可能直接是 CDN 上的 apk) */
-    private static boolean isDownloadUrl(String url) {
+    /** 页面里真正的下载接口/直链地址 */
+    private static boolean isCaptureUrl(String url) {
         if (url == null) return false;
         String u = url.toLowerCase();
-        return u.contains("/ws/download/url") || u.contains("/ws/file/redirect") || u.contains(".apk");
+        return u.contains("/ws/download/url") || u.contains("/ws/file/redirect")
+                || u.contains(".apk") || u.contains("download_name=");
     }
 
     /** evaluateJavascript 返回的是 JSON 字符串字面量, 需要自己去引号并解转义 */
@@ -461,12 +690,5 @@ public class UpdateChecker {
             }
         }
         return sb.toString();
-    }
-
-    /** 日志里只留主机与路径, 去掉会过期的签名参数 */
-    private static String redact(String url) {
-        if (url == null) return "";
-        int q = url.indexOf('?');
-        return q < 0 ? url : url.substring(0, q) + "?...";
     }
 }

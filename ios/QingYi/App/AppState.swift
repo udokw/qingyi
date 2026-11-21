@@ -124,14 +124,15 @@ final class AppState: ObservableObject {
         updateDownloading = true
         updateStatusText = "正在获取下载链接…"
         Task { @MainActor in
-            let directURL = await UpdateChecker.shared.downloadURL(fileName: fileName)
+            let outcome = await UpdateChecker.shared.downloadURL(fileName: fileName)
             self.updateDownloading = false
             self.updateNotice = nil
-            if let directURL {
+            switch outcome {
+            case .success(let directURL):
                 self.updateStatusText = "正在通过系统浏览器下载…"
                 await UIApplication.shared.open(directURL)
-            } else {
-                self.updateStatusText = "获取直链失败，已打开分享页"
+            case .failure(let reason):
+                self.updateStatusText = "获取直链失败：\(reason)\n已打开分享页"
                 await UIApplication.shared.open(UpdateSpec.sharePageURL)
             }
         }
